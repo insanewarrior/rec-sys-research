@@ -1,0 +1,5 @@
+cornac==2.3.3
+sansa>=1.1.0
+torch>=0.4.1
+tensorflow
+dgl
