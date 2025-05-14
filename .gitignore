@@ -1,0 +1,27 @@
+# ignore all .idea directories
+**/.idea/
+
+# ignore all files in the .aws directory
+.aws/*
+
+# ignore all .vscode directories
+*/.vscode/*
+.vscode/*
+
+# ignore virtual environment directories
+venv/
+.venv/
+myenv/
+
+# ignore Python cache directories and files
+__pycache__/
+*.pyc
+
+# ignore macOS .DS_Store files
+.DS_Store
+
+# ignore pytest cache directories
+.pytest_cache/
+
+# ignore tmp directories
+/tmp
