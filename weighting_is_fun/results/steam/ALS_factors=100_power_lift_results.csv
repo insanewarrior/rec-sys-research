@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+ALS_factors=100,power_lift,20,0.06674726959646718,0.05915992761991592,0.07139691825950503,0.10291873461240734,0.14989955272068278,49.503477811813354,{'p': 0.37512124004563385}
