@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+KNN_k=100,sigmoid_propensity,20,0.21916605621078616,0.2522848013100744,0.2618654841901142,0.2607619990103909,0.2819753671245855,0.029309511184692383,"{'p': 0.2836829624877627, 'beta': 0.5821600768215719}"

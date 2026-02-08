@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+I-AutoRec,no_weighting,1,0.08720317446522359,0.08282731848690054,0.09395659021263751,0.0996206498433119,0.12730933207010894,0.44227075576782227,{}

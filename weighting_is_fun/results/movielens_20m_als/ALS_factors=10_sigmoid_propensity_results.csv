@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+ALS_factors=10,sigmoid_propensity,20,0.21082655784228999,0.25281179155125577,0.25917227583701913,0.2732604384769628,0.293364312456881,4.19538426399231,"{'p': 1.679626087296186, 'beta': 0.23159432280619052}"

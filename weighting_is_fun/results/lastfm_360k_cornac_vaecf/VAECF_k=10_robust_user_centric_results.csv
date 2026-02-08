@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+VAECF_k=10,robust_user_centric,15,0.01516014948994972,0.00934486298084254,0.011602509448888144,0.012182741116751269,0.017258883248730966,0.9459795951843262,{'scale_factor': 6.846124791171668}

@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+KNN_k=20,confidence,20,0.04588111162951468,0.0422707285104997,0.05060763494187471,0.07188302682397428,0.10376831357567642,0.6906092166900635,{'conf_alpha': 9.722986878770948}

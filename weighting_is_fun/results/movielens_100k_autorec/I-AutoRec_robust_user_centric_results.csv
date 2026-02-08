@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+I-AutoRec,robust_user_centric,15,0.09747921183476509,0.09222023796715849,0.10222101285683913,0.10770245752927593,0.1350071056371388,0.4453237056732178,{'scale_factor': 6.837650716984776}

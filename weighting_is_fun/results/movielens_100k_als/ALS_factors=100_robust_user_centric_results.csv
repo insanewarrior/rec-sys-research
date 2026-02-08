@@ -1,0 +1,2 @@
+Algorithm,Strategy,Number of Optimization Trials,Best Val NDCG@20,Test NDCG@10,Test NDCG@20,Test Precision@10,Test Precision@20,Final Train Time (s),Best Params
+ALS_factors=100,robust_user_centric,20,0.28261240548604366,0.3453095790183932,0.35946434563438967,0.3671449777337952,0.39353387020369496,0.21622967720031738,{'scale_factor': 1.9548472736312617}
