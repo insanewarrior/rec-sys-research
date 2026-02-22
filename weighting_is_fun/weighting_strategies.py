@@ -83,7 +83,7 @@ def log_weight(X) -> csr_matrix:
     return X.tocsr()
 
 
-def confidence_weight(X, alpha=40.0) -> csr_matrix:
+def log_idf_weight(X, alpha=40.0) -> csr_matrix:
     """
     Applies sophisticated confidence weighting: 1 + alpha * log(1 + r_ui) * idf_i.
 
@@ -370,7 +370,7 @@ def robust_user_centric_weight_v2(X, lower_q=25, upper_q=75, batch_size=100_000)
 
 def sigmoid_propensity_weight(X, p=10.0, beta=1.0, batch_size=100_000) -> csr_matrix:
     """
-    Optimized: 
+    Optimized:
     1. Avoids global np.log(X.data) allocation.
     2. Uses 1/(1+C*x^-p) to remove log/exp from loop.
     """
