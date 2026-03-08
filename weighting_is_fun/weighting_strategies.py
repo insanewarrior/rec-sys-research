@@ -218,7 +218,7 @@ def power_lift_weight(X, p=0.5, batch_size=100_000) -> csr_matrix:
     return X
 
 
-def robust_user_centric_weight(X, scale_factor=10.0, batch_size=100_000) -> csr_matrix:
+def robust_user_centric_weight(X, batch_size=100_000) -> csr_matrix:
     """
     Weights based on user-specific Z-score (using Median/IQR for robustness).
     Adapts '50 plays' to be high for User A but low for User B.
@@ -294,7 +294,7 @@ def robust_user_centric_weight(X, scale_factor=10.0, batch_size=100_000) -> csr_
         weights = 1 / (1 + np.exp(-z_scores))
         
         # 5. Write back to the main matrix
-        X.data[start_ptr:end_ptr] = weights * scale_factor
+        X.data[start_ptr:end_ptr] = weights
 
     return X
 
@@ -464,7 +464,7 @@ def power_lift_weight_slow(X, p=0.5) -> csr_matrix:
 
     return X.tocsr()
 
-def robust_user_centric_weight_slow(X, scale_factor=10.0) -> csr_matrix:
+def robust_user_centric_weight_slow(X) -> csr_matrix:
     """
     Weights based on user-specific Z-score (using Median/IQR for robustness).
     Adapts '50 plays' to be high for User A but low for User B.
@@ -489,7 +489,7 @@ def robust_user_centric_weight_slow(X, scale_factor=10.0) -> csr_matrix:
         # Sigmoid squash to keep it bounded (0 to 1), then scaled
         z_scores = (user_counts - median) / iqr
         weights = 1 / (1 + np.exp(-z_scores)) # Sigmoid
-        new_data.extend(weights * scale_factor)
+        new_data.extend(weights)
     X.data = np.array(new_data)
     return X
 
