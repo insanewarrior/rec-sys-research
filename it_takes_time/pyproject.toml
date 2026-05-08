@@ -1,0 +1,27 @@
+[project]
+name = "it-takes-time"
+version = "0.1.0"
+description = "Temporal collaborative filtering benchmark: SASRec, BERT4Rec, and friends on MovieLens-1M with Optuna HPO and resumable runs."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24,<2.0",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "torch>=2.0",
+    "recbole>=1.2.0",
+    "optuna>=3.6",
+    "ray>=2.6",
+    "thop>=0.1.1",
+    "tabulate>=0.9",
+    "tqdm>=4.66",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+    "jupyterlab>=4.0",
+    "ipywidgets>=8.1",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
