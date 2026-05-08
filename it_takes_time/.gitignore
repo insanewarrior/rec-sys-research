@@ -1,0 +1,33 @@
+# Data & generated artifacts
+data/
+recbole_data/
+results/
+saved/
+log/
+log_tensorboard/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Misc
+*.log
+*.db-journal

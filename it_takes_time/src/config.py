@@ -1,6 +1,13 @@
-"""Project-wide configuration: paths, dataset registry, HPO/eval knobs."""
+"""Project-wide configuration: paths, dataset registry, HPO/eval knobs.
+
+Importing this module also installs the NumPy 2.x compatibility shim that
+RecBole needs (see ``_numpy_compat.py``). Every other ``src/`` module imports
+``config`` before ``recbole``, so this is the single point of patch install.
+"""
 
 from __future__ import annotations
+
+import _numpy_compat  # noqa: F401  -- must precede any recbole import
 
 import os
 from pathlib import Path

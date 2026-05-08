@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Temporal collaborative filtering benchmark: SASRec, BERT4Rec, and friends on MovieLens-1M with Optuna HPO and resumable runs."
 requires-python = ">=3.10"
 dependencies = [
-    "numpy>=1.24,<2.0",
+    "numpy>=1.24",
     "scipy>=1.10",
     "pandas>=2.0",
     "torch>=2.0",

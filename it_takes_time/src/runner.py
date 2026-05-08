@@ -12,6 +12,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import config as _config  # installs numpy 2.x shim before recbole import below
+
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
 from recbole.utils import get_model, get_trainer, init_seed
