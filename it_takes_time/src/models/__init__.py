@@ -18,8 +18,23 @@ from typing import Any, Callable
 import optuna
 
 
-def _seq_static() -> dict:
+def _ce_static() -> dict:
+    """Default for sequential models that support full-softmax CE loss."""
     return {"loss_type": "CE", "train_neg_sample_args": None}
+
+
+def _bpr_static() -> dict:
+    """For models that only support pairwise BPR (e.g. FPMC)."""
+    return {
+        "loss_type": "BPR",
+        "train_neg_sample_args": {
+            "distribution": "uniform",
+            "sample_num": 1,
+            "alpha": 1.0,
+            "dynamic": False,
+            "candidate_num": 0,
+        },
+    }
 
 
 def sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
@@ -100,11 +115,11 @@ MODEL_REGISTRY: dict[str, ModelSpec] = {
     "Pop":      {"class": "Pop",      "type": "general",    "search_space": pop_space},
     "BPR":      {"class": "BPR",      "type": "general",    "search_space": bpr_space},
     "ItemKNN":  {"class": "ItemKNN",  "type": "general",    "search_space": itemknn_space},
-    "FPMC":     {"class": "FPMC",     "type": "sequential", "search_space": fpmc_space, "static": _seq_static()},
-    "GRU4Rec":  {"class": "GRU4Rec",  "type": "sequential", "search_space": gru4rec_space, "static": _seq_static()},
-    "NARM":     {"class": "NARM",     "type": "sequential", "search_space": narm_space, "static": _seq_static()},
-    "SASRec":   {"class": "SASRec",   "type": "sequential", "search_space": sasrec_space, "static": _seq_static()},
-    "BERT4Rec": {"class": "BERT4Rec", "type": "sequential", "search_space": bert4rec_space, "static": _seq_static()},
+    "FPMC":     {"class": "FPMC",     "type": "sequential", "search_space": fpmc_space,    "static": _bpr_static()},
+    "GRU4Rec":  {"class": "GRU4Rec",  "type": "sequential", "search_space": gru4rec_space, "static": _ce_static()},
+    "NARM":     {"class": "NARM",     "type": "sequential", "search_space": narm_space,    "static": _ce_static()},
+    "SASRec":   {"class": "SASRec",   "type": "sequential", "search_space": sasrec_space,  "static": _ce_static()},
+    "BERT4Rec": {"class": "BERT4Rec", "type": "sequential", "search_space": bert4rec_space,"static": _ce_static()},
 }
 
 
