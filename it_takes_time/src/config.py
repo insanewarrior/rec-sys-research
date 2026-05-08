@@ -67,7 +67,12 @@ def common_recbole_config(dataset_name: str) -> dict:
         "checkpoint_dir": str(CHECKPOINT_DIR),
         "show_progress": False,
         "save_dataset": True,
-        "save_dataloaders": True,
+        # Caching dataloaders is unsafe across runs: RecBole's cache key only
+        # checks dataset_arguments + seed + repeatable + eval_args, so a change
+        # to `train_neg_sample_args` (e.g. switching loss_type CE <-> BPR) silently
+        # reuses a stale dataloader whose sampler is None, then crashes deep in
+        # the training loop. Rebuilding takes a few seconds — worth it.
+        "save_dataloaders": False,
         "USER_ID_FIELD": "user_id",
         "ITEM_ID_FIELD": "item_id",
         "TIME_FIELD": "timestamp",

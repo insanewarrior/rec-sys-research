@@ -19,22 +19,22 @@ import optuna
 
 
 def _ce_static() -> dict:
-    """Default for sequential models that support full-softmax CE loss."""
+    """Sequential models that support full-softmax CE (SASRec, BERT4Rec, GRU4Rec, NARM).
+
+    Disables negative sampling: ``train_neg_sample_args=None`` tells RecBole to
+    feed full-vocabulary targets into the cross-entropy loss.
+    """
     return {"loss_type": "CE", "train_neg_sample_args": None}
 
 
 def _bpr_static() -> dict:
-    """For models that only support pairwise BPR (e.g. FPMC)."""
-    return {
-        "loss_type": "BPR",
-        "train_neg_sample_args": {
-            "distribution": "uniform",
-            "sample_num": 1,
-            "alpha": 1.0,
-            "dynamic": False,
-            "candidate_num": 0,
-        },
-    }
+    """Models that only support pairwise BPR (e.g. FPMC).
+
+    No need to set ``train_neg_sample_args``: RecBole's ``overall.yaml`` default
+    (uniform, sample_num=1) is correct, and overriding with an identical dict
+    confuses the Config merge in some versions, leaving the sampler unbuilt.
+    """
+    return {"loss_type": "BPR"}
 
 
 def sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
