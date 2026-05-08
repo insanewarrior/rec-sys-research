@@ -1,0 +1,60 @@
+{
+  "model": "FPMC",
+  "dataset": "ml-1m",
+  "best_params": {
+    "embedding_size": 64,
+    "learning_rate": 0.0010401663679887319
+  },
+  "best_valid_score": 0.0868,
+  "best_valid_result": {
+    "recall@10": 0.1743,
+    "recall@20": 0.2598,
+    "recall@50": 0.4036,
+    "recall@100": 0.5368,
+    "mrr@10": 0.0604,
+    "mrr@20": 0.0663,
+    "mrr@50": 0.0708,
+    "mrr@100": 0.0727,
+    "ndcg@10": 0.0868,
+    "ndcg@20": 0.1083,
+    "ndcg@50": 0.1367,
+    "ndcg@100": 0.1583,
+    "hit@10": 0.1743,
+    "hit@20": 0.2598,
+    "hit@50": 0.4036,
+    "hit@100": 0.5368,
+    "precision@10": 0.0174,
+    "precision@20": 0.013,
+    "precision@50": 0.0081,
+    "precision@100": 0.0054
+  },
+  "test_result": {
+    "recall@10": 0.1599,
+    "recall@20": 0.2349,
+    "recall@50": 0.3738,
+    "recall@100": 0.5063,
+    "mrr@10": 0.0574,
+    "mrr@20": 0.0626,
+    "mrr@50": 0.0671,
+    "mrr@100": 0.069,
+    "ndcg@10": 0.0813,
+    "ndcg@20": 0.1003,
+    "ndcg@50": 0.1279,
+    "ndcg@100": 0.1494,
+    "hit@10": 0.1599,
+    "hit@20": 0.2349,
+    "hit@50": 0.3738,
+    "hit@100": 0.5063,
+    "precision@10": 0.016,
+    "precision@20": 0.0117,
+    "precision@50": 0.0075,
+    "precision@100": 0.0051
+  },
+  "train_seconds": 424.40468883514404,
+  "checkpoint": "/Users/a-shyraliev/phd/rec-sys-research/it_takes_time/results/checkpoints/FPMC-May-09-2026_01-08-22.pth",
+  "config_dict": {
+    "embedding_size": 64,
+    "learning_rate": 0.0010401663679887319
+  },
+  "completed_at": "2026-05-09 01:15:26"
+}

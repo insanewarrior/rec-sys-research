@@ -1,0 +1,60 @@
+{
+  "model": "BPR",
+  "dataset": "ml-1m",
+  "best_params": {
+    "embedding_size": 64,
+    "learning_rate": 0.0044447541666908135
+  },
+  "best_valid_score": 0.0358,
+  "best_valid_result": {
+    "recall@10": 0.0733,
+    "recall@20": 0.1262,
+    "recall@50": 0.2409,
+    "recall@100": 0.3767,
+    "mrr@10": 0.0246,
+    "mrr@20": 0.0282,
+    "mrr@50": 0.0317,
+    "mrr@100": 0.0336,
+    "ndcg@10": 0.0358,
+    "ndcg@20": 0.0491,
+    "ndcg@50": 0.0716,
+    "ndcg@100": 0.0935,
+    "hit@10": 0.0733,
+    "hit@20": 0.1262,
+    "hit@50": 0.2409,
+    "hit@100": 0.3767,
+    "precision@10": 0.0073,
+    "precision@20": 0.0063,
+    "precision@50": 0.0048,
+    "precision@100": 0.0038
+  },
+  "test_result": {
+    "recall@10": 0.0684,
+    "recall@20": 0.121,
+    "recall@50": 0.2278,
+    "recall@100": 0.3609,
+    "mrr@10": 0.0239,
+    "mrr@20": 0.0275,
+    "mrr@50": 0.0309,
+    "mrr@100": 0.0328,
+    "ndcg@10": 0.0341,
+    "ndcg@20": 0.0474,
+    "ndcg@50": 0.0685,
+    "ndcg@100": 0.0901,
+    "hit@10": 0.0684,
+    "hit@20": 0.121,
+    "hit@50": 0.2278,
+    "hit@100": 0.3609,
+    "precision@10": 0.0068,
+    "precision@20": 0.0061,
+    "precision@50": 0.0046,
+    "precision@100": 0.0036
+  },
+  "train_seconds": 58.21947193145752,
+  "checkpoint": "/Users/a-shyraliev/phd/rec-sys-research/it_takes_time/results/checkpoints/BPR-May-09-2026_00-47-01.pth",
+  "config_dict": {
+    "embedding_size": 64,
+    "learning_rate": 0.0044447541666908135
+  },
+  "completed_at": "2026-05-09 00:48:01"
+}

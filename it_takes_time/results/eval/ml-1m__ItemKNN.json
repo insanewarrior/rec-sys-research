@@ -1,0 +1,60 @@
+{
+  "model": "ItemKNN",
+  "dataset": "ml-1m",
+  "best_params": {
+    "k": 50,
+    "shrink": 0.8661761457749352
+  },
+  "best_valid_score": 0.0399,
+  "best_valid_result": {
+    "recall@10": 0.0838,
+    "recall@20": 0.1409,
+    "recall@50": 0.2596,
+    "recall@100": 0.3868,
+    "mrr@10": 0.0268,
+    "mrr@20": 0.0306,
+    "mrr@50": 0.0342,
+    "mrr@100": 0.036,
+    "ndcg@10": 0.0399,
+    "ndcg@20": 0.0542,
+    "ndcg@50": 0.0775,
+    "ndcg@100": 0.098,
+    "hit@10": 0.0838,
+    "hit@20": 0.1409,
+    "hit@50": 0.2596,
+    "hit@100": 0.3868,
+    "precision@10": 0.0084,
+    "precision@20": 0.007,
+    "precision@50": 0.0052,
+    "precision@100": 0.0039
+  },
+  "test_result": {
+    "recall@10": 0.0745,
+    "recall@20": 0.1268,
+    "recall@50": 0.2422,
+    "recall@100": 0.3639,
+    "mrr@10": 0.0261,
+    "mrr@20": 0.0296,
+    "mrr@50": 0.0332,
+    "mrr@100": 0.0349,
+    "ndcg@10": 0.0372,
+    "ndcg@20": 0.0503,
+    "ndcg@50": 0.073,
+    "ndcg@100": 0.0927,
+    "hit@10": 0.0745,
+    "hit@20": 0.1268,
+    "hit@50": 0.2422,
+    "hit@100": 0.3639,
+    "precision@10": 0.0075,
+    "precision@20": 0.0063,
+    "precision@50": 0.0048,
+    "precision@100": 0.0036
+  },
+  "train_seconds": 10.46173906326294,
+  "checkpoint": "/Users/a-shyraliev/phd/rec-sys-research/it_takes_time/results/checkpoints/ItemKNN-May-09-2026_00-49-28.pth",
+  "config_dict": {
+    "k": 50,
+    "shrink": 0.8661761457749352
+  },
+  "completed_at": "2026-05-09 00:49:44"
+}
