@@ -51,7 +51,7 @@ Knobs (env vars):
 
 | Var                   | Default | Effect                                  |
 |-----------------------|---------|------------------------------------------|
-| `N_TRIALS`            | 5       | Optuna trials per model                  |
+| `N_TRIALS`            | 10      | Optuna trials per model                  |
 | `HPO_EPOCHS`          | 10      | Epochs per HPO trial (short)             |
 | `FINAL_EPOCHS`        | 50      | Epochs for the final fit on best params  |
 | `EARLY_STOP_PATIENCE` | 5       | Early-stopping patience on val NDCG@10   |
