@@ -36,6 +36,25 @@ def _build_config(
     epochs: int,
     saved: bool,
 ) -> tuple[Config, type | None]:
+    """Construct a RecBole ``Config`` and resolve the model class.
+
+    Merges the common dataset config, the model's static overrides, and any
+    caller-supplied *overrides*, then seeds the RNG.
+
+    Parameters:
+        dataset_name: RecBole dataset identifier (e.g. ``"ml-1m"``).
+        model_name: Key in ``MODEL_REGISTRY`` (e.g. ``"SASRec"``).
+        overrides: Arbitrary config key/value pairs that take precedence over
+            both the common config and the model's static defaults.
+        epochs: Training epoch count written into the config.
+        saved: Whether the best checkpoint should be persisted to disk; written
+            into ``save_dataset`` to prevent stale dataloader caching.
+
+    Returns:
+        A 2-tuple ``(config, model_cls)`` where *model_cls* is ``None`` for
+        RecBole built-ins (resolved by name at trainer creation time) or the
+        actual Python class for custom variants.
+    """
     spec = get_spec(model_name)
     name_str, model_cls = resolve(spec["class"])
     cfg_dict = common_recbole_config(dataset_name)
@@ -48,7 +67,19 @@ def _build_config(
     return config, model_cls
 
 
-def _instantiate_model(config: Config, dataset, model_cls: type | None):
+def _instantiate_model(config: Config, dataset: Any, model_cls: type | None) -> Any:
+    """Instantiate and move a model to the configured device.
+
+    Parameters:
+        config: RecBole ``Config`` object; provides ``"model"`` name and ``"device"``.
+        dataset: RecBole ``Dataset`` passed as the second argument to the model
+            constructor.
+        model_cls: Explicit Python class to instantiate, or ``None`` to look up
+            the built-in class via ``recbole.utils.get_model``.
+
+    Returns:
+        Model instance on ``config["device"]``.
+    """
     if model_cls is not None:
         return model_cls(config, dataset).to(config["device"])
     cls = get_model(config["model"])
@@ -62,7 +93,25 @@ def train_one(
     epochs: int | None = None,
     saved: bool = True,
 ) -> dict[str, Any]:
-    """Single train/eval pass. Used both for HPO trials and final fits."""
+    """Run a single train/evaluate pass and return the metric results.
+
+    Used both for HPO trials (``saved=False``, reduced epochs) and for final
+    full-length fits (``saved=True``).
+
+    Parameters:
+        dataset_name: RecBole dataset identifier (e.g. ``"ml-1m"``).
+        model_name: Key in ``MODEL_REGISTRY`` (e.g. ``"SASRec"``).
+        overrides: Config key/value pairs that override both the common config and
+            the model's static defaults. Typically supplied by the HPO objective.
+        epochs: Number of training epochs. Defaults to ``FINAL_EPOCHS`` when
+            ``None``.
+        saved: If ``True``, the best checkpoint is written to ``CHECKPOINT_DIR``
+            and ``load_best_model=True`` is used during test evaluation.
+
+    Returns:
+        Dictionary with keys ``best_valid_score``, ``best_valid_result``,
+        ``test_result``, ``train_seconds``, ``checkpoint``, and ``config_dict``.
+    """
     overrides = overrides or {}
     config, model_cls = _build_config(
         dataset_name,
@@ -94,18 +143,58 @@ def train_one(
 
 
 def eval_path(dataset_name: str, model_name: str) -> Path:
+    """Return the canonical JSON path for a (dataset, model) result.
+
+    Parameters:
+        dataset_name: RecBole dataset identifier (e.g. ``"ml-1m"``).
+        model_name: Key in ``MODEL_REGISTRY`` (e.g. ``"SASRec"``).
+
+    Returns:
+        Path under ``EVAL_DIR`` of the form ``<dataset>__<model>.json``.
+    """
     return EVAL_DIR / f"{dataset_name}__{model_name}.json"
 
 
 def has_result(dataset_name: str, model_name: str) -> bool:
+    """Return ``True`` if a saved result JSON exists for the given pair.
+
+    Parameters:
+        dataset_name: RecBole dataset identifier.
+        model_name: Key in ``MODEL_REGISTRY``.
+
+    Returns:
+        ``True`` if the result file exists on disk, ``False`` otherwise.
+    """
     return eval_path(dataset_name, model_name).exists()
 
 
 def load_result(dataset_name: str, model_name: str) -> dict[str, Any]:
+    """Load and deserialize the saved result JSON for a (dataset, model) pair.
+
+    Parameters:
+        dataset_name: RecBole dataset identifier.
+        model_name: Key in ``MODEL_REGISTRY``.
+
+    Returns:
+        Deserialized result dictionary as written by ``save_result``.
+
+    Raises:
+        FileNotFoundError: If no result file exists for the given pair.
+    """
     return json.loads(eval_path(dataset_name, model_name).read_text())
 
 
 def save_result(dataset_name: str, model_name: str, result: dict[str, Any]) -> Path:
+    """Serialize *result* to the canonical JSON path for the given pair.
+
+    Parameters:
+        dataset_name: RecBole dataset identifier.
+        model_name: Key in ``MODEL_REGISTRY``.
+        result: Arbitrary serializable dictionary to persist.
+
+    Returns:
+        Path of the written JSON file.
+    """
     p = eval_path(dataset_name, model_name)
     p.write_text(json.dumps(result, indent=2, default=str))
     return p
@@ -117,7 +206,22 @@ def train_and_eval(
     best_params: dict[str, Any] | None = None,
     force: bool = False,
 ) -> dict[str, Any]:
-    """Resumable entry point. If a prior result exists on disk, load it."""
+    """Resumable entry point: train, evaluate, and persist the result.
+
+    If a result JSON already exists on disk and *force* is ``False``, the saved
+    record is returned immediately without re-training.
+
+    Parameters:
+        dataset_name: RecBole dataset identifier (e.g. ``"ml-1m"``).
+        model_name: Key in ``MODEL_REGISTRY`` (e.g. ``"SASRec"``).
+        best_params: HPO-derived hyperparameter overrides to apply on top of the
+            model's static defaults. Pass ``None`` or ``{}`` to use defaults only.
+        force: Re-train even if a cached result already exists.
+
+    Returns:
+        Result dictionary with keys from ``train_one`` plus ``"model"``,
+        ``"dataset"``, ``"best_params"``, and ``"completed_at"``.
+    """
     if has_result(dataset_name, model_name) and not force:
         print(f"[runner] {model_name}: cached result loaded, skipping training.")
         return load_result(dataset_name, model_name)

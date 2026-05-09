@@ -1,0 +1,72 @@
+{
+  "model": "NARM",
+  "dataset": "ml-1m",
+  "best_params": {
+    "embedding_size": 64,
+    "hidden_size": 64,
+    "n_layers": 1,
+    "dropout_probs": [
+      0.25,
+      0.5
+    ],
+    "learning_rate": 0.0015958573588141277
+  },
+  "best_valid_score": 0.1234,
+  "best_valid_result": {
+    "recall@10": 0.2336,
+    "recall@20": 0.3464,
+    "recall@50": 0.5154,
+    "recall@100": 0.6387,
+    "mrr@10": 0.0901,
+    "mrr@20": 0.0979,
+    "mrr@50": 0.1033,
+    "mrr@100": 0.105,
+    "ndcg@10": 0.1234,
+    "ndcg@20": 0.1518,
+    "ndcg@50": 0.1853,
+    "ndcg@100": 0.2054,
+    "hit@10": 0.2336,
+    "hit@20": 0.3464,
+    "hit@50": 0.5154,
+    "hit@100": 0.6387,
+    "precision@10": 0.0234,
+    "precision@20": 0.0173,
+    "precision@50": 0.0103,
+    "precision@100": 0.0064
+  },
+  "test_result": {
+    "recall@10": 0.2247,
+    "recall@20": 0.3253,
+    "recall@50": 0.4891,
+    "recall@100": 0.6127,
+    "mrr@10": 0.0834,
+    "mrr@20": 0.0903,
+    "mrr@50": 0.0955,
+    "mrr@100": 0.0973,
+    "ndcg@10": 0.1163,
+    "ndcg@20": 0.1416,
+    "ndcg@50": 0.1741,
+    "ndcg@100": 0.1942,
+    "hit@10": 0.2247,
+    "hit@20": 0.3253,
+    "hit@50": 0.4891,
+    "hit@100": 0.6127,
+    "precision@10": 0.0225,
+    "precision@20": 0.0163,
+    "precision@50": 0.0098,
+    "precision@100": 0.0061
+  },
+  "train_seconds": 468.2524938583374,
+  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/NARM-May-09-2026_16-41-57.pth",
+  "config_dict": {
+    "embedding_size": 64,
+    "hidden_size": 64,
+    "n_layers": 1,
+    "dropout_probs": [
+      0.25,
+      0.5
+    ],
+    "learning_rate": 0.0015958573588141277
+  },
+  "completed_at": "2026-05-09 16:49:46"
+}

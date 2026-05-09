@@ -50,11 +50,11 @@
     "precision@50": 0.0075,
     "precision@100": 0.0051
   },
-  "train_seconds": 424.40468883514404,
-  "checkpoint": "/Users/a-shyraliev/phd/rec-sys-research/it_takes_time/results/checkpoints/FPMC-May-09-2026_01-08-22.pth",
+  "train_seconds": 514.5931520462036,
+  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/FPMC-May-09-2026_15-40-23.pth",
   "config_dict": {
     "embedding_size": 64,
     "learning_rate": 0.0010401663679887319
   },
-  "completed_at": "2026-05-09 01:15:26"
+  "completed_at": "2026-05-09 15:48:58"
 }

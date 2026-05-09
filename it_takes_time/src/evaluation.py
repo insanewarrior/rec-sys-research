@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,17 @@ from config import EVAL_DIR
 
 
 def aggregate_results(dataset_name: str | None = None) -> pd.DataFrame:
+    """Load all saved evaluation JSONs and return them as a sorted DataFrame.
+
+    Parameters:
+        dataset_name: If provided, only rows whose ``"dataset"`` field matches
+            this value are included. Pass ``None`` to aggregate across all datasets.
+
+    Returns:
+        DataFrame with one row per (dataset, model) result, sorted descending by
+        ``ndcg@10`` (or the last metric column if that key is absent). Empty
+        DataFrame if no JSON files exist under ``EVAL_DIR``.
+    """
     rows = []
     for p in sorted(EVAL_DIR.glob("*.json")):
         rec = json.loads(p.read_text())
@@ -36,10 +47,10 @@ def aggregate_results(dataset_name: str | None = None) -> pd.DataFrame:
 
 
 def top_k_recommend(
-    model,
-    dataset,
-    test_data,
-    user_external_ids: Sequence,
+    model: Any,
+    dataset: Any,
+    test_data: Any,
+    user_external_ids: Sequence[Any],
     k: int = 100,
     mask_seen: bool = True,
 ) -> pd.DataFrame:
@@ -48,6 +59,22 @@ def top_k_recommend(
     Implements the "next-1 model -> top-K" path: score every item at the next
     position, mask the user's history (and padding), take ``argpartition`` top-K,
     sort that slice. This is the standard sequential-recommender serving path.
+
+    Parameters:
+        model: Trained RecBole model (must be in eval mode or will be set to eval).
+        dataset: RecBole ``Dataset`` object used during training, providing
+            ``token2id`` / ``id2token`` mappings and interaction history.
+        test_data: RecBole test dataloader; its ``dataset.inter_feat`` is passed to
+            ``full_sort_predict`` when the model supports it.
+        user_external_ids: External (string/int) user IDs to generate recommendations
+            for. Must be present in the dataset's user vocabulary.
+        k: Number of top items to return per user.
+        mask_seen: If ``True``, items already in the user's interaction history are
+            masked to ``-inf`` before taking the top-K.
+
+    Returns:
+        DataFrame with columns ``user_id``, ``rank`` (1-based), ``item_id``, and
+        ``score``, one row per (user, rank) pair.
     """
     model.eval()
     device = next(model.parameters()).device
@@ -59,7 +86,7 @@ def top_k_recommend(
 
     with torch.no_grad():
         try:
-            interaction = test_data.dataset.inter_feat
+            interaction = test_data.dataset.inter_feat.to(device)
             scores = model.full_sort_predict(interaction)
         except (NotImplementedError, AttributeError):
             n_items = dataset.item_num

@@ -50,11 +50,11 @@
     "precision@50": 0.0048,
     "precision@100": 0.0036
   },
-  "train_seconds": 10.46173906326294,
-  "checkpoint": "/Users/a-shyraliev/phd/rec-sys-research/it_takes_time/results/checkpoints/ItemKNN-May-09-2026_00-49-28.pth",
+  "train_seconds": 21.31523084640503,
+  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/ItemKNN-May-09-2026_15-26-22.pth",
   "config_dict": {
     "k": 50,
     "shrink": 0.8661761457749352
   },
-  "completed_at": "2026-05-09 00:49:44"
+  "completed_at": "2026-05-09 15:26:54"
 }

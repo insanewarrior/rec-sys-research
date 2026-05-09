@@ -50,11 +50,11 @@
     "precision@50": 0.0046,
     "precision@100": 0.0036
   },
-  "train_seconds": 58.21947193145752,
-  "checkpoint": "/Users/a-shyraliev/phd/rec-sys-research/it_takes_time/results/checkpoints/BPR-May-09-2026_00-47-01.pth",
+  "train_seconds": 91.27323627471924,
+  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/BPR-May-09-2026_15-22-08.pth",
   "config_dict": {
     "embedding_size": 64,
     "learning_rate": 0.0044447541666908135
   },
-  "completed_at": "2026-05-09 00:48:01"
+  "completed_at": "2026-05-09 15:23:45"
 }

@@ -8,9 +8,11 @@ RecBole needs (see ``_numpy_compat.py``). Every other ``src/`` module imports
 from __future__ import annotations
 
 import _numpy_compat  # noqa: F401  -- must precede any recbole import
+import _cudnn_compat  # noqa: F401  -- must precede `import torch` to win the dlopen race
 
 import os
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -30,7 +32,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.i
 TOP_K = [10, 20, 50, 100]
 PRIMARY_METRIC = "ndcg@10"
 
-N_TRIALS = int(os.environ.get("N_TRIALS", "5"))
+N_TRIALS = int(os.environ.get("N_TRIALS", "10"))
 HPO_EPOCHS = int(os.environ.get("HPO_EPOCHS", "10"))
 FINAL_EPOCHS = int(os.environ.get("FINAL_EPOCHS", "50"))
 EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
@@ -59,8 +61,17 @@ DATASETS: dict[str, dict] = {
 }
 
 
-def common_recbole_config(dataset_name: str) -> dict:
-    """Config fields shared by every model on a given dataset."""
+def common_recbole_config(dataset_name: str) -> dict[str, Any]:
+    """Return config fields shared by every model on a given dataset.
+
+    Parameters:
+        dataset_name: Key into ``DATASETS`` (e.g. ``"ml-1m"``); used to resolve
+            per-dataset interaction-count filters.
+
+    Returns:
+        Dict of RecBole config keys covering paths, field names, evaluation
+        strategy, metrics, top-K list, device, and early-stopping patience.
+    """
     return {
         "data_path": str(RECBOLE_DATA_DIR),
         "dataset": dataset_name,

@@ -22,6 +22,12 @@ from config import DATA_DIR, DATASETS, RECBOLE_DATA_DIR
 
 
 def _download_and_unzip(url: str, target_dir: Path) -> None:
+    """Download a ZIP archive from *url* and extract it into *target_dir*.
+
+    Parameters:
+        url: Full HTTP/HTTPS URL of the ZIP file to download.
+        target_dir: Destination directory; created (with parents) if absent.
+    """
     target_dir.mkdir(parents=True, exist_ok=True)
     print(f"[data] Downloading {url} ...")
     with urllib.request.urlopen(url) as resp:
@@ -32,6 +38,17 @@ def _download_and_unzip(url: str, target_dir: Path) -> None:
 
 
 def _ensure_raw(dataset_name: str) -> Path:
+    """Return the raw data directory for *dataset_name*, downloading if necessary.
+
+    Parameters:
+        dataset_name: Key into ``DATASETS`` (e.g. ``"ml-1m"``).
+
+    Returns:
+        Path to the directory containing the raw ratings file.
+
+    Raises:
+        FileNotFoundError: If the ratings file is absent even after a successful download.
+    """
     spec = DATASETS[dataset_name]
     raw_dir = DATA_DIR / spec["raw_subdir"]
     if (raw_dir / spec["ratings_file"]).exists():
@@ -45,8 +62,19 @@ def _ensure_raw(dataset_name: str) -> Path:
 def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
     """Materialize ``<RECBOLE_DATA_DIR>/<dataset_name>/<dataset_name>.inter``.
 
-    Returns the directory path (which is what RecBole's ``data_path`` should point at,
-    one level above).
+    Downloads the raw dataset if needed, applies the rating threshold filter, and
+    writes the RecBole atomic interaction file. Idempotent unless *force* is set.
+
+    Parameters:
+        dataset_name: Key into ``DATASETS`` (e.g. ``"ml-1m"``).
+        force: Re-build the ``.inter`` file even if it already exists.
+
+    Returns:
+        Path to the dataset output directory (the value to pass as RecBole's
+        ``data_path`` is one level above this directory).
+
+    Raises:
+        KeyError: If *dataset_name* is not present in ``DATASETS``.
     """
     if dataset_name not in DATASETS:
         raise KeyError(f"Unknown dataset: {dataset_name}. Known: {list(DATASETS)}")
@@ -78,7 +106,16 @@ def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
     return out_dir
 
 
-def dataset_stats(dataset_name: str) -> dict:
+def dataset_stats(dataset_name: str) -> dict[str, int | float]:
+    """Return summary statistics for a prepared RecBole dataset.
+
+    Parameters:
+        dataset_name: Key into ``DATASETS`` (e.g. ``"ml-1m"``).
+
+    Returns:
+        Dictionary with keys ``interactions``, ``users``, ``items``, ``density``,
+        ``min_ts``, and ``max_ts``.
+    """
     out_dir = prepare_recbole_dataset(dataset_name)
     df = pd.read_csv(out_dir / f"{dataset_name}.inter", sep="\t")
     df.columns = [c.split(":")[0] for c in df.columns]

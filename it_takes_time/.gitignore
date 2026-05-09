@@ -1,6 +1,7 @@
 # Data & generated artifacts
 data/
 recbole_data/
+results/checkpoints/
 saved/
 log/
 log_tensorboard/
