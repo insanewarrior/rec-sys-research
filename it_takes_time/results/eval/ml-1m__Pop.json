@@ -48,7 +48,7 @@
     "precision@100": 0.0023
   },
   "train_seconds": 8.47994089126587,
-  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/Pop-May-09-2026_15-14-50.pth",
+  "checkpoint": "Pop-May-09-2026_15-14-50.pth",
   "config_dict": {},
   "completed_at": "2026-05-09 15:15:05"
 }

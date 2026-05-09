@@ -54,7 +54,7 @@
     "precision@100": 0.0062
   },
   "train_seconds": 644.715313911438,
-  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/GRU4Rec-May-09-2026_16-10-25.pth",
+  "checkpoint": "GRU4Rec-May-09-2026_16-10-25.pth",
   "config_dict": {
     "embedding_size": 128,
     "hidden_size": 64,

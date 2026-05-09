@@ -56,7 +56,7 @@
     "precision@100": 0.0063
   },
   "train_seconds": 1952.142561674118,
-  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/SASRec-May-09-2026_17-35-40.pth",
+  "checkpoint": "SASRec-May-09-2026_17-35-40.pth",
   "config_dict": {
     "n_layers": 2,
     "n_heads": 2,

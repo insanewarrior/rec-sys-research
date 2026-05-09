@@ -57,7 +57,7 @@
     "precision@100": 0.0061
   },
   "train_seconds": 468.2524938583374,
-  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/NARM-May-09-2026_16-41-57.pth",
+  "checkpoint": "NARM-May-09-2026_16-41-57.pth",
   "config_dict": {
     "embedding_size": 64,
     "hidden_size": 64,

@@ -137,7 +137,7 @@ def train_one(
         "best_valid_result": {k: float(v) for k, v in dict(best_valid_result).items()},
         "test_result": {k: float(v) for k, v in dict(test_result).items()},
         "train_seconds": train_time,
-        "checkpoint": str(trainer.saved_model_file) if saved else None,
+        "checkpoint": Path(trainer.saved_model_file).name if saved else None,
         "config_dict": {k: overrides.get(k) for k in overrides},
     }
 

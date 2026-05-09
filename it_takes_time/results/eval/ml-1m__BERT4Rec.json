@@ -57,7 +57,7 @@
     "precision@100": 0.0062
   },
   "train_seconds": 2472.9894602298737,
-  "checkpoint": "/home/coder/projects/rec-sys-research/it_takes_time/results/checkpoints/BERT4Rec-May-09-2026_19-35-21.pth",
+  "checkpoint": "BERT4Rec-May-09-2026_19-35-21.pth",
   "config_dict": {
     "n_layers": 1,
     "n_heads": 4,
