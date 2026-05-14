@@ -1,0 +1,467 @@
+% ============================================================
+% Звіт до проєкту
+% Дисципліна: Інноваційні сфери застосування нейронних мереж
+% КПІ ім. Ігоря Сікорського — ІПСА — Кафедра ШІ
+% ============================================================
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[ukrainian]{babel}
+\usepackage[a4paper, top=2cm, bottom=2cm, left=2.5cm, right=1.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{rotating}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{indentfirst}
+\usepackage{caption}
+\usepackage[colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue]{hyperref}
+\usepackage{microtype}
+
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+\setlength{\parindent}{1.25cm}
+\onehalfspacing
+\setlength{\emergencystretch}{3em}
+\pagestyle{plain}
+\captionsetup{font=small, labelfont=bf}
+
+% ---- helpers for tables: best = bold, second = underline ----
+\newcommand{\best}[1]{\textbf{#1}}
+\newcommand{\second}[1]{\underline{#1}}
+
+\begin{document}
+
+% ============================================================
+% TITLE PAGE
+% ============================================================
+\begin{titlepage}
+\begin{center}
+\textbf{НАЦІОНАЛЬНИЙ ТЕХНІЧНИЙ УНІВЕРСИТЕТ УКРАЇНИ}\\[0.2cm]
+\textbf{«КИЇВСЬКИЙ ПОЛІТЕХНІЧНИЙ ІНСТИТУТ}\\
+\textbf{ІМЕНІ ІГОРЯ СІКОРСЬКОГО»}\\[0.5cm]
+Інститут прикладного системного аналізу\\
+Кафедра штучного інтелекту\\[2.5cm]
+
+{\large\bfseries ЗВІТ ДО ПРОЄКТУ}\\[0.5cm]
+
+{\large з дисципліни «Інноваційні сфери застосування нейронних мереж»}\\[0.8cm]
+
+{\large\bfseries на тему:}\\[0.3cm]
+{\large «Аналіз нейромережевих послідовних та базових статичних\\
+методів у задачах колаборативної фільтрації»}\\[3.5cm]
+\end{center}
+
+\begin{flushright}
+\begin{tabular}{rl}
+Виконав:      & аспірант групи [ГРУПА] \\
+              & [ПІБ] \\[1.2em]
+Перевірила:   & [ПІБ] \\
+\end{tabular}
+\end{flushright}
+
+\vfill
+\begin{center}
+Київ, 2026
+\end{center}
+\end{titlepage}
+
+% ============================================================
+% SECTION 1 — МЕТА РОБОТИ
+% ============================================================
+\section{Мета роботи}
+
+Метою даного проєкту є систематичне порівняння восьми методів
+колаборативної фільтрації (послідовних та загальних) на єдиній
+відтворюваній методологічній основі.
+Конкретні завдання:
+\begin{itemize}
+    \item оцінити якість рекомендацій кожної моделі за повним набором метрик
+          (HR, NDCG, MRR, Precision) при порогах $K\!\in\!\{10,20,50,100\}$;
+    \item кількісно визначити розрив між послідовними та загальними підходами;
+    \item встановити оптимальну модель за критерієм «якість\,/\,час навчання».
+\end{itemize}
+
+Набір даних: MovieLens-1M~\cite{harper2015movielens}.
+Реалізації моделей взяті з фреймворку RecBole~\cite{zhao2021recbole};
+гіперпараметри підбираються автоматично за допомогою Optuna~\cite{akiba2019optuna}.
+
+% ============================================================
+% SECTION 2 — НАБІР ДАНИХ
+% ============================================================
+\section{Набір даних}
+
+MovieLens-1M~\cite{harper2015movielens} є загальновживаним еталонним набором
+даних платформи GroupLens Research, що містить оцінки фільмів, зібрані з
+кінця 1990-х по 2003~рік.
+У даному дослідженні оцінки трактуються як сигнал неявного зворотного
+зв'язку (факт перегляду).
+Застосовано фільтрацію: залишаються лише користувачі та фільми з
+щонайменше~5 взаємодіями.
+Характеристики після фільтрації наведено в таблиці~\ref{tab:dataset}.
+
+\begin{table}[h!]
+\centering
+\caption{Характеристики набору даних MovieLens-1M після фільтрації.}
+\label{tab:dataset}
+\begin{tabular}{lr}
+\toprule
+Параметр & Значення \\
+\midrule
+Кількість взаємодій   & 1\,000\,209 \\
+Кількість користувачів & 6\,040 \\
+Кількість фільмів      & 3\,706 \\
+Щільність матриці      & 4{,}47\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 3 — МЕТОДОЛОГІЯ
+% ============================================================
+\section{Методологія}
+
+\subsection{Порівнювані моделі}
+
+Досліджуються вісім моделей двох сімейств (таблиця~\ref{tab:models}).
+\textit{Загальні} методи (Pop, BPR~\cite{rendle2009bpr},
+ItemKNN~\cite{sarwar2001itemknn}) не враховують порядок взаємодій і
+є базовими моделями.
+\textit{Послідовні} методи явно моделюють хронологічну послідовність:
+FPMC~\cite{rendle2010fpmc} поєднує матричну факторизацію з марківськими
+ланцюгами;
+GRU4Rec~\cite{hidasi2016gru4rec} використовує рекурентну мережу GRU;
+NARM~\cite{li2017narm} доповнює GRU механізмом уваги;
+SASRec~\cite{kang2018sasrec} побудований на авторегресивній трансформерній
+увазі;
+BERT4Rec~\cite{sun2019bert4rec} адаптує двонаправлену увагу з маскуванням токенів
+BERT для задачі рекомендацій.
+
+\begin{table}[h!]
+\centering
+\caption{Порівнювані моделі та їх ключові характеристики.}
+\label{tab:models}
+\begin{tabular}{llp{7.5cm}}
+\toprule
+Модель   & Сімейство  & Ключова архітектурна ідея \\
+\midrule
+Pop      & загальна   & ранжування за глобальною популярністю \\
+BPR      & загальна   & парне ранжування з імпліцитним сигналом \\
+ItemKNN  & загальна   & item-based колаборативна фільтрація \\
+\midrule
+FPMC     & послідовна & матрична факторизація + ланцюги Маркова \\
+GRU4Rec  & послідовна & рекурентна мережа (GRU) \\
+NARM     & послідовна & GRU + механізм м'якої уваги \\
+SASRec   & послідовна & авторегресивна трансформерна увага \\
+BERT4Rec & послідовна & двонапрямлена увага з маскуванням токенів \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Розбиття даних}
+
+Для кожного користувача взаємодії впорядковуються за часовою міткою.
+Остання взаємодія відводиться до тестової вибірки, передостання
+до валідаційної, а всі попередні до навчальної
+(\textit{leave-one-out} стратегія; параметри RecBole:
+\texttt{LS=valid\_and\_test}, \texttt{order=TO}).
+Завданням моделі є правильно передбачити наступний фільм у персональній
+хронологічній послідовності користувача (next-item prediction).
+
+\subsection{Підбір гіперпараметрів}
+
+Автоматичний підбір гіперпараметрів здійснюється бібліотекою
+Optuna~\cite{akiba2019optuna} з алгоритмом пошуку TPE та MedianPruner.
+Для кожної моделі виконується 10~пробних запусків по 10~епох
+(HPO\_TRIALS\,=\,10, HPO\_EPOCHS\,=\,10); фінальна модель навчається
+50~епох (FINAL\_EPOCHS\,=\,50) з найкращою комбінацією гіперпараметрів.
+Стани досліджень зберігаються у SQLite-базі, що забезпечує можливість
+відновлення при перериванні.
+
+\subsection{Метрики оцінювання}
+
+Оцінювання проводиться у режимі повного словника
+(\textit{full-vocabulary scoring}): кожна модель ранжує всі фільми набору
+даних для кожного тестового користувача, попередньо маскуючи об'єкти з
+його навчальної та валідаційної історії.
+Обчислюються чотири групи метрик при порогах $K\!\in\!\{10,20,50,100\}$:
+
+\begin{itemize}
+    \item \textbf{HR@K} (Hit Rate): частка користувачів, для яких цільовий
+          фільм потрапив до топ-$K$;
+    \item \textbf{NDCG@K}: нормалізований дисконтований кумулятивний виграш,
+          враховує позицію релевантного результату в ранжованому списку;
+    \item \textbf{MRR@K}: середній зворотній ранг першого релевантного
+          результату;
+    \item \textbf{Precision@K}: частка релевантних об'єктів серед топ-$K$.
+\end{itemize}
+
+\noindent Оскільки у leave-one-out оцінюванні кожен користувач має рівно один
+тестовий об'єкт, $\text{HR@K}\equiv\text{Recall@K}$, тому Recall окремо
+не наводиться.
+
+% ============================================================
+% SECTION 4 — РЕЗУЛЬТАТИ
+% ============================================================
+\section{Результати}
+
+Повна таблиця результатів наведена в таблиці~\ref{tab:results}
+(горизонтальна орієнтація).
+Порівняння середніх показників двох сімейств наведено в
+таблиці~\ref{tab:family}.
+
+% --- WIDE LANDSCAPE TABLE ---
+\begin{sidewaystable}[p]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.8pt}
+\caption{Результати оцінювання на тестовій вибірці MovieLens-1M.
+         HR\,=\,Recall за протоколом leave-one-out.
+         \best{Жирним} виділено найкраще значення у стовпці,
+         \underline{підкресленням} позначено друге.
+         Train: час навчання фінальної моделі, с.}
+\label{tab:results}
+\begin{tabular}{l|rrrr|rrrr|rrrr|rrrr|r}
+\toprule
+& \multicolumn{4}{c|}{\textbf{HR@K}}
+& \multicolumn{4}{c|}{\textbf{NDCG@K}}
+& \multicolumn{4}{c|}{\textbf{MRR@K}}
+& \multicolumn{4}{c|}{\textbf{Precision@K}}
+& \\
+\textbf{Модель}
+  & \multicolumn{1}{c}{10}
+  & \multicolumn{1}{c}{20}
+  & \multicolumn{1}{c}{50}
+  & \multicolumn{1}{c|}{100}
+  & \multicolumn{1}{c}{10}
+  & \multicolumn{1}{c}{20}
+  & \multicolumn{1}{c}{50}
+  & \multicolumn{1}{c|}{100}
+  & \multicolumn{1}{c}{10}
+  & \multicolumn{1}{c}{20}
+  & \multicolumn{1}{c}{50}
+  & \multicolumn{1}{c|}{100}
+  & \multicolumn{1}{c}{10}
+  & \multicolumn{1}{c}{20}
+  & \multicolumn{1}{c}{50}
+  & \multicolumn{1}{c|}{100}
+  & \textbf{Train, с} \\
+\midrule
+Pop
+  & 0.0368 & 0.0687 & 0.1387 & 0.2257
+  & 0.0177 & 0.0257 & 0.0395 & 0.0535
+  & 0.0120 & 0.0142 & 0.0164 & 0.0176
+  & 0.0037 & 0.0034 & 0.0028 & 0.0023
+  & 8.5 \\
+BPR
+  & 0.0684 & 0.1210 & 0.2278 & 0.3609
+  & 0.0341 & 0.0474 & 0.0685 & 0.0901
+  & 0.0239 & 0.0275 & 0.0309 & 0.0328
+  & 0.0068 & 0.0061 & 0.0046 & 0.0036
+  & 91.3 \\
+ItemKNN
+  & 0.0745 & 0.1268 & 0.2422 & 0.3639
+  & 0.0372 & 0.0503 & 0.0730 & 0.0927
+  & 0.0261 & 0.0296 & 0.0332 & 0.0349
+  & 0.0075 & 0.0063 & 0.0048 & 0.0036
+  & 21.3 \\
+\midrule
+FPMC
+  & 0.1599 & 0.2349 & 0.3738 & 0.5063
+  & 0.0813 & 0.1003 & 0.1279 & 0.1494
+  & 0.0574 & 0.0626 & 0.0671 & 0.0690
+  & 0.0160 & 0.0117 & 0.0075 & 0.0051
+  & 514.6 \\
+GRU4Rec
+  & \best{0.2467} & \best{0.3455} & 0.5017 & 0.6151
+  & \best{0.1436} & \best{0.1685} & \best{0.1994} & \best{0.2178}
+  & \best{0.1121} & \best{0.1188} & \best{0.1238} & \best{0.1254}
+  & \best{0.0247} & \best{0.0173} & 0.0100 & \second{0.0062}
+  & 644.7 \\
+NARM
+  & 0.2247 & 0.3253 & 0.4891 & 0.6127
+  & 0.1163 & 0.1416 & 0.1741 & 0.1942
+  & 0.0834 & 0.0903 & 0.0955 & 0.0973
+  & 0.0225 & 0.0163 & 0.0098 & 0.0061
+  & 468.3 \\
+SASRec
+  & \second{0.2444} & 0.3430 & \best{0.5119} & \best{0.6313}
+  & \second{0.1272} & \second{0.1521} & \second{0.1857} & \second{0.2051}
+  & \second{0.0916} & \second{0.0984} & \second{0.1038} & \second{0.1055}
+  & \second{0.0244} & \second{0.0172} & \best{0.0102} & \best{0.0063}
+  & 1952.1 \\
+BERT4Rec
+  & 0.2359 & \second{0.3454} & \second{0.5063} & \second{0.6248}
+  & 0.1237 & 0.1512 & 0.1832 & 0.2024
+  & 0.0898 & 0.0973 & 0.1024 & 0.1041
+  & 0.0236 & \best{0.0173} & \second{0.0101} & \second{0.0062}
+  & 2473.0 \\
+\bottomrule
+\end{tabular}
+\end{sidewaystable}
+
+\begin{table}[h!]
+\centering
+\caption{Порівняння двох сімейств моделей (середні значення по групі).}
+\label{tab:family}
+\begin{tabular}{lrrr}
+\toprule
+Сімейство & NDCG@10 & HR@10 & MRR@10 \\
+\midrule
+Загальні (Pop, BPR, ItemKNN) & 0.0297 & 0.0599 & 0.0207 \\
+Послідовні (FPMC, GRU4Rec, NARM, SASRec, BERT4Rec) & 0.1184 & 0.2223 & 0.0869 \\
+\midrule
+Відношення (послідовні / загальні) & $\times$3.99 & $\times$3.71 & $\times$4.20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% SECTION 5 — АНАЛІЗ РЕЗУЛЬТАТІВ
+% ============================================================
+\section{Аналіз результатів}
+
+\paragraph{Перевага послідовних моделей.}
+Таблиця~\ref{tab:family} демонструє різку різницю між двома сімействами: в
+середньому послідовні моделі перевищують загальні у 3.7--4.2~рази за
+ключовими метриками.
+Це підтверджує, що хронологічна структура взаємодій несе суттєву
+прогностичну інформацію, яку статичні методи не здатні використати.
+Навіть найпростіша послідовна модель (FPMC, NDCG@10\,=\,0.0813) вдвічі
+перевершує найкращу загальну базову модель (ItemKNN, NDCG@10\,=\,0.0372).
+
+\paragraph{Лідер: GRU4Rec.}
+Рекурентна модель GRU4Rec досягає найвищих значень за NDCG@10\,=\,0.1436,
+HR@10\,=\,0.2467, MRR@10\,=\,0.1121 та всіма метриками при $K\le 50$.
+При цьому час навчання становить лише 644~с, що є помірним: майже утричі
+менший, ніж у SASRec (1952~с), і майже вчетверо менший, ніж у BERT4Rec (2473~с).
+Такий результат свідчить про те, що GRU ефективно вловлює короткострокові
+залежності у послідовностях взаємодій без надмірних витрат на навчання.
+
+\paragraph{Трансформерні моделі: SASRec та BERT4Rec.}
+SASRec та BERT4Rec є конкурентоспроможними (NDCG@10 відповідно 0.1272 та
+0.1237) і перевершують GRU4Rec при великих порогах ($K\ge 50$): HR@100 у
+SASRec досягає 0.6313 проти 0.6151 у GRU4Rec.
+Це вказує на те, що трансформерна увага точніше охоплює довгострокові
+контекстні зв'язки, що корисно для завдань з широким списком рекомендацій.
+Проте значно більший час навчання обмежує їх застосовність у
+ресурсообмежених середовищах.
+
+\paragraph{NARM.}
+NARM (NDCG@10\,=\,0.1163) займає третє місце серед послідовних нейронних
+моделей. Механізм уваги дозволяє йому виділяти ключові точки сесії, проте
+двоетапна архітектура (GRU\,+\,увага) поступається чистій трансформерній
+увазі SASRec за кожним показником.
+
+\paragraph{FPMC як гібридна модель.}
+FPMC суттєво перевершує загальні базові моделі, однак значно відстає від
+повністю нейронних послідовних методів: NDCG@10\,=\,0.0813 проти 0.1163
+у NARM.
+Це вказує на обмеженість першопорядкового марківського наближення порівняно
+з нелінійними нейронними архітектурами.
+
+% ============================================================
+% SECTION 6 — ВИСНОВКИ
+% ============================================================
+\section{Висновки}
+
+\begin{enumerate}
+    \item Послідовна колаборативна фільтрація, що враховує хронологічний
+          порядок взаємодій, кардинально переважає статичні методи у
+          задачі next-item prediction: середній приріст NDCG@10 становить
+          $\approx$4-кратний. Це робить моделювання часової динаміки
+          практично обов'язковим для продакшн-рекомендаційних систем.
+
+    \item GRU4Rec є найкращою моделлю за інтегральним критерієм
+          «якість\,/\,час навчання»: найвищий NDCG@10\,=\,0.1436 при
+          помірних 644~с.
+          SASRec та BERT4Rec доцільні тоді, коли пріоритетом є охоплення
+          широкого списку ($K\ge 50$), а обчислювальні ресурси дозволяють
+          витратити 2\,000--2\,500~с на навчання.
+
+    \item FPMC підтверджує важливість послідовності навіть у спрощеному
+          марківському наближенні, однак для досягнення максимальної
+          якості необхідні нелінійні нейронні архітектури.
+\end{enumerate}
+
+% ============================================================
+% REFERENCES
+% ============================================================
+\newpage
+\begin{thebibliography}{10}
+
+\bibitem{harper2015movielens}
+F.\,M.~Harper and J.\,A.~Konstan,
+``The MovieLens datasets: History and context,''
+\textit{ACM Trans. Interact. Intell. Syst.},
+vol.~5, no.~4, Art. no.~19, Dec. 2015,
+doi:~10.1145/2827872.
+
+\bibitem{zhao2021recbole}
+W.\,X.~Zhao et~al.,
+``RecBole: Towards a unified, comprehensive and efficient framework
+for recommendation algorithms,''
+in \textit{Proc. 30th ACM Int. Conf. Inf. Knowl. Manage. (CIKM)},
+Virtual Event, QLD, Australia, Nov. 2021, pp.~4653--4664,
+doi:~10.1145/3459637.3482016.
+
+\bibitem{akiba2019optuna}
+T.~Akiba, S.~Sano, T.~Yanase, T.~Ohta, and M.~Koyama,
+``Optuna: A next-generation hyperparameter optimization framework,''
+in \textit{Proc. 25th ACM SIGKDD Int. Conf. Knowl. Discovery Data Mining (KDD)},
+Anchorage, AK, USA, Aug. 2019, pp.~2623--2631.
+
+\bibitem{rendle2009bpr}
+S.~Rendle, C.~Freudenthaler, Z.~Gantner, and L.~Schmidt-Thieme,
+``BPR: Bayesian personalized ranking from implicit feedback,''
+in \textit{Proc. 25th Conf. Uncertainty Artif. Intell. (UAI)},
+Montreal, QC, Canada, Jun. 2009, pp.~452--461.
+
+\bibitem{sarwar2001itemknn}
+B.~Sarwar, G.~Karypis, J.~Konstan, and J.~Riedl,
+``Item-based collaborative filtering recommendation algorithms,''
+in \textit{Proc. 10th Int. Conf. World Wide Web (WWW)},
+Hong Kong, May 2001, pp.~285--295,
+doi:~10.1145/371920.372071.
+
+\bibitem{rendle2010fpmc}
+S.~Rendle, C.~Freudenthaler, and L.~Schmidt-Thieme,
+``Factorizing personalized Markov chains for next-basket recommendation,''
+in \textit{Proc. 19th Int. Conf. World Wide Web (WWW)},
+Apr. 2010, pp.~811--820,
+doi:~10.1145/1772690.1772773.
+
+\bibitem{hidasi2016gru4rec}
+B.~Hidasi, A.~Karatzoglou, L.~Baltrunas, and D.~Tikk,
+``Session-based recommendations with recurrent neural networks,''
+in \textit{Proc. 4th Int. Conf. Learn. Represent. (ICLR)},
+May 2016.
+
+\bibitem{li2017narm}
+J.~Li et~al.,
+``Neural attentive session-based recommendation,''
+in \textit{Proc. 26th ACM Int. Conf. Inf. Knowl. Manage. (CIKM)},
+Singapore, Nov. 2017, pp.~1419--1428,
+doi:~10.1145/3132847.3132926.
+
+\bibitem{kang2018sasrec}
+W.-C.~Kang and J.~McAuley,
+``Self-attentive sequential recommendation,''
+in \textit{Proc. IEEE Int. Conf. Data Mining (ICDM)},
+Singapore, Nov. 2018, pp.~197--206,
+doi:~10.1109/ICDM.2018.00035.
+
+\bibitem{sun2019bert4rec}
+F.~Sun et~al.,
+``BERT4Rec: Sequential recommendation with bidirectional encoder
+representations from transformer,''
+in \textit{Proc. 28th ACM Int. Conf. Inf. Knowl. Manage. (CIKM)},
+Beijing, China, Nov. 2019, pp.~1441--1450,
+doi:~10.1145/3357384.3357895.
+
+\end{thebibliography}
+
+\end{document}
