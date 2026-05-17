@@ -1,36 +1,61 @@
 # It Takes Time
 
-Temporal collaborative-filtering benchmark on MovieLens-1M: SASRec, BERT4Rec,
-GRU4Rec, NARM, FPMC, plus non-sequential baselines (Pop, BPR, ItemKNN), all
-under one reproducible methodology with **Optuna** HPO and **on-disk
-resumability**.
+Sequential-recommender benchmark on **MovieLens-1M** and **Steam-200k**,
+comparing SOTA baselines (SASRec, BERT4Rec, GRU4Rec, NARM, FPMC, Pop, BPR,
+ItemKNN) against three new **IA-SASRec** (Intensity-Aware SASRec) variants
+that inject per-interaction strength (ratings, hours-played) directly into
+the self-attention mechanism. One reproducible methodology, **Optuna** HPO,
+on-disk resumability, 27 pytest tests.
 
 ## Why
 
-Sequential recommenders are routinely benchmarked under inconsistent splits and
-hyperparameter budgets, which makes paper-to-paper comparison fragile. This
-project's goal is a single notebook where:
+Sequential recommenders are routinely benchmarked under inconsistent splits
+and hyperparameter budgets, which makes paper-to-paper comparison fragile.
+This project's goal is a single notebook where:
 
 - every model sees the same chronological leave-one-out split,
 - every model gets the same Optuna budget on the same metric (NDCG@10),
 - you can interrupt a long run and resume — partial results survive on disk,
-- new variants of SASRec / BERT4Rec / etc. drop into `src/models/variants/`
-  and join the comparison table by adding one entry to a registry.
+- new SASRec / BERT4Rec variants drop into `src/models/variants/` and join the
+  comparison table by adding one entry to a registry,
+- the same `.inter` file feeds every model — baselines that don't read the
+  intensity column simply ignore it, keeping the comparison apples-to-apples.
+
+## IA-SASRec — what's new
+
+`vanilla SASRec` treats every history item as a binary presence signal.
+**IA-SASRec** keeps the per-interaction intensity (rating, hours played,
+dwell time) and threads it into the attention computation through one of
+three drop-in modifications:
+
+| Variant            | Mechanism                                                   | Extra params |
+|--------------------|-------------------------------------------------------------|--------------|
+| `IA-SASRec-Add`    | additive logit bias `softmax(QKᵀ/√d + λ·M_W) V`             | 1 scalar `λ` per layer (learnable) |
+| `IA-SASRec-Mul`    | multiplicative scaling `softmax((QKᵀ/√d) ⊙ M_W) V`          | none |
+| `IA-SASRec-Val`    | value modulation `softmax(QKᵀ/√d) (V ⊙ w)`                  | none |
+
+Full math, motivation, and paper outline: **[ia_sasrec.md](ia_sasrec.md)**.
 
 ## Layout
 
 ```
 it_takes_time/
 ├── pyproject.toml
+├── ia_sasrec.md                # theory + implementation reference for IA-SASRec
+├── sasrec_advances.md          # original brainstorm / design doc
 ├── src/
-│   ├── config.py        # paths, dataset registry, HPO knobs
-│   ├── data.py          # ML-1M download + RecBole atomic-file conversion
-│   ├── hpo.py           # Optuna study, persisted to SQLite
-│   ├── runner.py        # train + eval, resumable via results/eval/*.json
-│   ├── evaluation.py    # aggregate results table, top-K recommend helper
-│   └── models/          # MODEL_REGISTRY + variants/ for custom papers
+│   ├── config.py               # paths, dataset registry (ml-1m, ml-100k, steam), HPO knobs
+│   ├── data.py                 # downloads + writes 4-column .inter (user, item, ts, intensity)
+│   ├── hpo.py                  # Optuna study, persisted to SQLite
+│   ├── runner.py               # train + eval + invalidate_cache, resumable via results/eval/*.json
+│   ├── evaluation.py           # aggregate results table, top-K recommend helper
+│   └── models/
+│       ├── __init__.py         # MODEL_REGISTRY, search spaces
+│       └── variants/
+│           └── ia_sasrec.py    # IASASRecBase + Add/Mul/Val + IAMultiHeadAttention
+├── tests/                      # 27 pytest tests (math, registry, runner, data)
 └── notebooks/
-    └── 0_movielens_1m_benchmark.ipynb
+    └── 0_movielens_1m_benchmark.ipynb   # loops over both datasets × full registry
 ```
 
 ## Setup
@@ -38,14 +63,20 @@ it_takes_time/
 ```bash
 cd it_takes_time
 python -m venv .venv && source .venv/bin/activate
-pip install -e .
+pip install -e ".[test]"
 ```
 
-(GPU optional. CPU works for ML-1M; SASRec ~5 min/run on a modern laptop.)
+For the Steam dataset, configure Kaggle credentials once — drop
+`~/.kaggle/kaggle.json` in place, or export `KAGGLE_USERNAME` and
+`KAGGLE_KEY`. ML-1M downloads automatically with no auth.
+
+GPU optional. CPU is fine for ML-1M; SASRec ~5 min/run on a modern laptop.
 
 ## Run
 
-Open `notebooks/0_movielens_1m_benchmark.ipynb` and run top-to-bottom.
+Open `notebooks/0_movielens_1m_benchmark.ipynb` and run top-to-bottom. It
+loops over `["ml-1m", "steam"]` × the full model registry (including the
+three IA-SASRec variants).
 
 Knobs (env vars):
 
@@ -56,25 +87,63 @@ Knobs (env vars):
 | `FINAL_EPOCHS`        | 50      | Epochs for the final fit on best params  |
 | `EARLY_STOP_PATIENCE` | 5       | Early-stopping patience on val NDCG@10   |
 
+### One-time: re-run baselines after schema change
+
+The `.inter` file now carries a fourth column (`intensity:float`). Cached
+baseline results from before this change must be regenerated for the
+comparison to remain valid:
+
+```bash
+python -c "from runner import invalidate_cache; invalidate_cache('ml-1m')"
+```
+
+Then re-run the notebook — the baselines retrain on the new file, IA-SASRec
+variants train fresh.
+
+## Tests
+
+```bash
+pytest -q
+```
+
+27 tests covering: intensity normalisation modes, attention math for each
+variant (`Add` at `λ=0` matches vanilla bit-for-bit; `Mul` zero-intensity
+collapses to uniform; `Val` leaves the probability distribution untouched),
+padding-mask correctness across variants, full forward+backward smoke,
+registry wiring, two RecBole gotchas (class-object vs. name in `Config`;
+inlined SASRec yaml defaults), and data-pipeline format checks.
+
 ## Resumability
 
-- `results/eval/<dataset>__<model>.json` — final metrics. Presence of this file
-  means "skip this model".
-- `results/hpo/<dataset>__<model>.db` — Optuna SQLite study. Re-running an HPO
-  call continues from the last trial.
+- `results/eval/<dataset>__<model>.json` — final metrics. Presence of this
+  file means "skip this model on next notebook run".
+- `results/hpo/<dataset>__<model>.db` — Optuna SQLite study. Re-running an
+  HPO call continues from the last trial.
 - `results/checkpoints/` — RecBole-saved best-model `.pth` files.
 
-To re-run a single model from scratch: delete its eval JSON (and optionally its
-HPO DB) and re-run the benchmark cell.
+To re-run a single model from scratch:
+`from runner import invalidate_cache; invalidate_cache("ml-1m", "SASRec")`,
+optionally also delete its HPO DB, then re-run the benchmark cell.
 
 ## Adding a custom variant
 
-See section 7 of the notebook. TL;DR: subclass a RecBole model under
-`src/models/variants/`, append an entry to `MODEL_REGISTRY` in
-`src/models/__init__.py`, re-run.
+See section 7 of the notebook, or use IA-SASRec as a worked example:
 
-## Switching dataset
+1. Subclass a RecBole model under `src/models/variants/`.
+2. Append an entry to `MODEL_REGISTRY` in `src/models/__init__.py`. If the
+   subclass relies on SASRec's internal yaml defaults (`hidden_act`, etc.),
+   inline them in the `static` dict — RecBole doesn't load them
+   automatically for non-built-in classes.
+3. Re-run the benchmark cell. Cached results for other models are reused.
 
-Edit `DATASET` in the notebook (currently `'ml-1m'`). `ml-100k` is preconfigured
-in `src/config.py:DATASETS`. To add another: append an entry there with its URL,
-filename, separator, and column layout — `data.py` will handle the rest.
+## Datasets
+
+| Key       | Source                                            | Intensity signal        |
+|-----------|---------------------------------------------------|-------------------------|
+| `ml-1m`   | GroupLens HTTP zip                                | Rating 1–5              |
+| `ml-100k` | GroupLens HTTP zip                                | Rating 1–5              |
+| `steam`   | Kaggle `tamber/steam-video-games` via `kagglehub` | Hours played            |
+
+To add another: append an entry to `DATASETS` in `src/config.py` with its
+download spec, intensity column, and any pre-filters — `data.py` handles
+the rest of the atomic-file conversion.

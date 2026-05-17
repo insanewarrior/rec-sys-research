@@ -62,7 +62,11 @@ def _build_config(
     cfg_dict.update(overrides or {})
     cfg_dict["epochs"] = epochs
     cfg_dict["save_dataset"] = saved
-    config = Config(model=name_str, dataset=dataset_name, config_dict=cfg_dict)
+    # For custom variants, pass the class object directly so RecBole skips its
+    # name-based submodule scan (which transitively imports ``lightgbm`` and
+    # crashes when libomp isn't installed). Built-ins are still resolved by name.
+    model_arg = model_cls if model_cls is not None else name_str
+    config = Config(model=model_arg, dataset=dataset_name, config_dict=cfg_dict)
     init_seed(config["seed"], config["reproducibility"])
     return config, model_cls
 
@@ -198,6 +202,34 @@ def save_result(dataset_name: str, model_name: str, result: dict[str, Any]) -> P
     p = eval_path(dataset_name, model_name)
     p.write_text(json.dumps(result, indent=2, default=str))
     return p
+
+
+def invalidate_cache(dataset_name: str, model_name: str | None = None) -> list[Path]:
+    """Delete cached result JSON files so the next run retrains from scratch.
+
+    Use this after changing the underlying ``.inter`` schema (e.g. adding the
+    intensity column) or whenever you intentionally want to force re-evaluation.
+
+    Parameters:
+        dataset_name: RecBole dataset identifier.
+        model_name: If given, only delete that single model's result; otherwise
+            delete every cached result for the dataset.
+
+    Returns:
+        List of removed file paths.
+    """
+    if model_name is not None:
+        targets = [eval_path(dataset_name, model_name)]
+    else:
+        targets = sorted(EVAL_DIR.glob(f"{dataset_name}__*.json"))
+    removed: list[Path] = []
+    for p in targets:
+        if p.exists():
+            p.unlink()
+            removed.append(p)
+    if removed:
+        print(f"[runner] Invalidated {len(removed)} cached result(s) for {dataset_name}.")
+    return removed
 
 
 def train_and_eval(

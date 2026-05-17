@@ -17,6 +17,8 @@ from typing import Any, Callable
 
 import optuna
 
+from models.variants.ia_sasrec import IASASRecAdd, IASASRecMul, IASASRecVal
+
 
 def _ce_static() -> dict[str, Any]:
     """Return fixed config overrides for models using full-softmax cross-entropy loss.
@@ -28,6 +30,24 @@ def _ce_static() -> dict[str, Any]:
         Config dict with ``loss_type="CE"`` and ``train_neg_sample_args=None``.
     """
     return {"loss_type": "CE", "train_neg_sample_args": None}
+
+
+def _sasrec_yaml_defaults() -> dict[str, Any]:
+    """Return SASRec's internal-yaml defaults that custom variants miss.
+
+    When a custom subclass is passed to ``recbole.config.Config`` as a class
+    object, RecBole looks up ``<classname>.yaml`` for internal defaults — which
+    doesn't exist for our IA-SASRec variants, leaving fields like ``hidden_act``
+    set to ``None`` and crashing inside ``FeedForward.get_hidden_act``. We
+    inline the values from ``recbole/properties/model/SASRec.yaml`` here. The
+    other SASRec fields (``n_layers``, ``hidden_size``, etc.) are always
+    supplied by the HPO search space, so they don't need defaults.
+    """
+    return {
+        "hidden_act": "gelu",
+        "layer_norm_eps": 1e-12,
+        "initializer_range": 0.02,
+    }
 
 
 def _bpr_static() -> dict[str, Any]:
@@ -62,6 +82,27 @@ def sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
         "attn_dropout_prob": trial.suggest_float("attn_dropout_prob", 0.1, 0.5),
         "learning_rate": trial.suggest_float("learning_rate", 1e-4, 5e-3, log=True),
     }
+
+
+def ia_sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
+    """Sample hyperparameters for IA-SASRec variants.
+
+    Reuses the vanilla SASRec search space and adds a normalisation-mode knob
+    that controls how raw intensity values are squashed before injection into
+    the attention mechanism.
+
+    Parameters:
+        trial: Active Optuna trial used for parameter suggestion.
+
+    Returns:
+        Dict of RecBole config overrides covering SASRec hyperparameters plus
+        ``intensity_norm``.
+    """
+    base = sasrec_space(trial)
+    base["intensity_norm"] = trial.suggest_categorical(
+        "intensity_norm", ["log1p_minmax", "minmax", "zscore"]
+    )
+    return base
 
 
 def bert4rec_space(trial: optuna.Trial) -> dict[str, Any]:
@@ -197,6 +238,15 @@ MODEL_REGISTRY: dict[str, ModelSpec] = {
     "NARM":     {"class": "NARM",     "type": "sequential", "search_space": narm_space,    "static": _ce_static()},
     "SASRec":   {"class": "SASRec",   "type": "sequential", "search_space": sasrec_space,  "static": _ce_static()},
     "BERT4Rec": {"class": "BERT4Rec", "type": "sequential", "search_space": bert4rec_space,"static": _ce_static()},
+    "IA-SASRec-Add": {"class": IASASRecAdd, "type": "sequential",
+                      "search_space": ia_sasrec_space,
+                      "static": {**_ce_static(), **_sasrec_yaml_defaults()}},
+    "IA-SASRec-Mul": {"class": IASASRecMul, "type": "sequential",
+                      "search_space": ia_sasrec_space,
+                      "static": {**_ce_static(), **_sasrec_yaml_defaults()}},
+    "IA-SASRec-Val": {"class": IASASRecVal, "type": "sequential",
+                      "search_space": ia_sasrec_space,
+                      "static": {**_ce_static(), **_sasrec_yaml_defaults()}},
 }
 
 

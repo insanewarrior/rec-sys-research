@@ -44,6 +44,7 @@ DATASETS: dict[str, dict] = {
         "ratings_file": "ratings.dat",
         "sep": "::",
         "columns": ["user_id", "item_id", "rating", "timestamp"],
+        "intensity_col": "rating",  # 1..5 explicit; doubles as intensity for IA-SASRec
         "min_user_inter": 5,
         "min_item_inter": 5,
         "rating_threshold": 0,
@@ -54,6 +55,25 @@ DATASETS: dict[str, dict] = {
         "ratings_file": "u.data",
         "sep": "\t",
         "columns": ["user_id", "item_id", "rating", "timestamp"],
+        "intensity_col": "rating",
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
+    "steam": {
+        # Steam-200k (Tamber/Kaggle) — true implicit feedback with hours-played intensity.
+        # Fetched via kagglehub; needs ``~/.kaggle/kaggle.json`` or the env vars
+        # ``KAGGLE_USERNAME`` + ``KAGGLE_KEY`` to be set once. The CSV has no
+        # timestamps; we synthesize them by stable-sorting on hours so
+        # higher-engagement plays appear later in the user's sequence.
+        "kaggle_dataset": "tamber/steam-video-games",
+        "raw_subdir": "steam",
+        "ratings_file": "steam-200k.csv",
+        "sep": ",",
+        "columns": ["user_id", "item_id", "behavior", "hours", "extra"],
+        "intensity_col": "hours",
+        "behavior_filter": "play",   # drop "purchase" rows (hours==1.0 sentinel)
+        "synthesize_timestamp": True,
         "min_user_inter": 5,
         "min_item_inter": 5,
         "rating_threshold": 0,
@@ -87,7 +107,10 @@ def common_recbole_config(dataset_name: str) -> dict[str, Any]:
         "USER_ID_FIELD": "user_id",
         "ITEM_ID_FIELD": "item_id",
         "TIME_FIELD": "timestamp",
-        "load_col": {"inter": ["user_id", "item_id", "timestamp"]},
+        # `intensity` is a per-interaction FLOAT. RecBole's SequentialDataset auto-builds
+        # `intensity_list` aligned to `item_id_list`; non-IA models simply ignore it.
+        "INTENSITY_FIELD": "intensity",
+        "load_col": {"inter": ["user_id", "item_id", "timestamp", "intensity"]},
         "user_inter_num_interval": f"[{DATASETS[dataset_name]['min_user_inter']},inf)",
         "item_inter_num_interval": f"[{DATASETS[dataset_name]['min_item_inter']},inf)",
         "eval_args": {
