@@ -1,0 +1,72 @@
+{
+  "model": "NARM",
+  "dataset": "ml-100k",
+  "best_params": {
+    "embedding_size": 128,
+    "hidden_size": 256,
+    "n_layers": 1,
+    "dropout_probs": [
+      0.25,
+      0.5
+    ],
+    "learning_rate": 0.0047499747713783975
+  },
+  "best_valid_score": 0.0768,
+  "best_valid_result": {
+    "recall@10": 0.1654,
+    "recall@20": 0.2778,
+    "recall@50": 0.4496,
+    "recall@100": 0.6204,
+    "mrr@10": 0.0504,
+    "mrr@20": 0.0579,
+    "mrr@50": 0.0633,
+    "mrr@100": 0.0658,
+    "ndcg@10": 0.0768,
+    "ndcg@20": 0.1048,
+    "ndcg@50": 0.1387,
+    "ndcg@100": 0.1666,
+    "hit@10": 0.1654,
+    "hit@20": 0.2778,
+    "hit@50": 0.4496,
+    "hit@100": 0.6204,
+    "precision@10": 0.0165,
+    "precision@20": 0.0139,
+    "precision@50": 0.009,
+    "precision@100": 0.0062
+  },
+  "test_result": {
+    "recall@10": 0.1485,
+    "recall@20": 0.2407,
+    "recall@50": 0.4189,
+    "recall@100": 0.5885,
+    "mrr@10": 0.0541,
+    "mrr@20": 0.0604,
+    "mrr@50": 0.0659,
+    "mrr@100": 0.0683,
+    "ndcg@10": 0.0757,
+    "ndcg@20": 0.0989,
+    "ndcg@50": 0.134,
+    "ndcg@100": 0.1614,
+    "hit@10": 0.1485,
+    "hit@20": 0.2407,
+    "hit@50": 0.4189,
+    "hit@100": 0.5885,
+    "precision@10": 0.0148,
+    "precision@20": 0.012,
+    "precision@50": 0.0084,
+    "precision@100": 0.0059
+  },
+  "train_seconds": 82.18134641647339,
+  "checkpoint": "NARM-May-18-2026_15-17-33.pth",
+  "config_dict": {
+    "embedding_size": 128,
+    "hidden_size": 256,
+    "n_layers": 1,
+    "dropout_probs": [
+      0.25,
+      0.5
+    ],
+    "learning_rate": 0.0047499747713783975
+  },
+  "completed_at": "2026-05-18 15:18:55"
+}
