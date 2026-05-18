@@ -1,7 +1,8 @@
 # It Takes Time
 
-Sequential-recommender benchmark on **MovieLens-100K**, **Amazon Digital
-Music 5-core**, and **Amazon Office Products 5-core**, comparing SOTA
+Sequential-recommender benchmark on **MovieLens-1M**, **MovieLens-100K**,
+**Amazon Digital Music 5-core**, and **Amazon Office Products 5-core**,
+comparing SOTA
 baselines (SASRec, BERT4Rec, GRU4Rec, NARM, FPMC, Pop, BPR, ItemKNN) against
 three new **IA-SASRec** (Intensity-Aware SASRec) variants that inject
 per-interaction strength (rating) directly into the self-attention
@@ -45,7 +46,7 @@ it_takes_time/
 ├── ia_sasrec.md                # theory + implementation reference for IA-SASRec
 ├── sasrec_advances.md          # original brainstorm / design doc
 ├── src/
-│   ├── config.py               # paths, dataset registry (ml-100k, amazon-digital-music, amazon-office-products), HPO knobs
+│   ├── config.py               # paths, dataset registry (ml-1m, ml-100k, amazon-digital-music, amazon-office-products), HPO knobs
 │   ├── data.py                 # downloads + writes 4-column .inter (user, item, ts, intensity)
 │   ├── hpo.py                  # Optuna study, persisted to SQLite
 │   ├── runner.py               # train + eval + invalidate_cache, resumable via results/eval/*.json
@@ -67,17 +68,17 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
 ```
 
-All three datasets download automatically over plain HTTP — no credentials
+All four datasets download automatically over plain HTTP — no credentials
 required.
 
-GPU optional. CPU is fine for these dataset sizes — most sequential models
-run in single-digit minutes per HPO trial.
+GPU optional. CPU is fine for ML-100K and Amazon 5-core (~minutes per
+model); ML-1M with SASRec ~5 min/run on a modern laptop.
 
 ## Run
 
 Open `notebooks/0_benchmark.ipynb` and run top-to-bottom. It loops over
-`["ml-100k", "amazon-digital-music", "amazon-office-products"]` × the full
-model registry (including the three IA-SASRec variants).
+`["ml-1m", "ml-100k", "amazon-digital-music", "amazon-office-products"]` ×
+the full model registry (including the three IA-SASRec variants).
 
 Knobs (env vars):
 
@@ -141,6 +142,7 @@ See section 7 of the notebook, or use IA-SASRec as a worked example:
 
 | Key                       | Source                                                  | Intensity signal | Notes                                          |
 |---------------------------|---------------------------------------------------------|------------------|------------------------------------------------|
+| `ml-1m`                   | GroupLens HTTP zip                                      | Rating 1–5       | Native unix timestamps                         |
 | `ml-100k`                 | GroupLens HTTP zip                                      | Rating 1–5       | Native unix timestamps                         |
 | `amazon-digital-music`    | snap.stanford.edu JSON-gz (McAuley 2014 5-core)         | Rating 1–5       | ~5.5k users × ~3.6k items × ~64k reviews       |
 | `amazon-office-products`  | snap.stanford.edu JSON-gz (McAuley 2014 5-core)         | Rating 1–5       | ~4.9k users × ~2.4k items × ~53k reviews       |

@@ -38,6 +38,17 @@ FINAL_EPOCHS = int(os.environ.get("FINAL_EPOCHS", "50"))
 EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
 
 DATASETS: dict[str, dict] = {
+    "ml-1m": {
+        "url": "https://files.grouplens.org/datasets/movielens/ml-1m.zip",
+        "raw_subdir": "ml-1m",
+        "ratings_file": "ratings.dat",
+        "sep": "::",
+        "columns": ["user_id", "item_id", "rating", "timestamp"],
+        "intensity_col": "rating",
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
     "ml-100k": {
         "url": "https://files.grouplens.org/datasets/movielens/ml-100k.zip",
         "raw_subdir": "ml-100k",
