@@ -38,17 +38,6 @@ FINAL_EPOCHS = int(os.environ.get("FINAL_EPOCHS", "50"))
 EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
 
 DATASETS: dict[str, dict] = {
-    "ml-1m": {
-        "url": "https://files.grouplens.org/datasets/movielens/ml-1m.zip",
-        "raw_subdir": "ml-1m",
-        "ratings_file": "ratings.dat",
-        "sep": "::",
-        "columns": ["user_id", "item_id", "rating", "timestamp"],
-        "intensity_col": "rating",  # 1..5 explicit; doubles as intensity for IA-SASRec
-        "min_user_inter": 5,
-        "min_item_inter": 5,
-        "rating_threshold": 0,
-    },
     "ml-100k": {
         "url": "https://files.grouplens.org/datasets/movielens/ml-100k.zip",
         "raw_subdir": "ml-100k",
@@ -60,20 +49,40 @@ DATASETS: dict[str, dict] = {
         "min_item_inter": 5,
         "rating_threshold": 0,
     },
-    "steam": {
-        # Steam-200k (Tamber/Kaggle) — true implicit feedback with hours-played intensity.
-        # Fetched via kagglehub; needs ``~/.kaggle/kaggle.json`` or the env vars
-        # ``KAGGLE_USERNAME`` + ``KAGGLE_KEY`` to be set once. The CSV has no
-        # timestamps; we synthesize them by stable-sorting on hours so
-        # higher-engagement plays appear later in the user's sequence.
-        "kaggle_dataset": "tamber/steam-video-games",
-        "raw_subdir": "steam",
-        "ratings_file": "steam-200k.csv",
-        "sep": ",",
-        "columns": ["user_id", "item_id", "behavior", "hours", "extra"],
-        "intensity_col": "hours",
-        "behavior_filter": "play",   # drop "purchase" rows (hours==1.0 sentinel)
-        "synthesize_timestamp": True,
+    "amazon-digital-music": {
+        # McAuley 2014 Amazon Reviews, Digital Music 5-core. Native (rating, unix_timestamp).
+        # ~5.5k users, ~3.6k items, ~64k reviews.
+        "url": "http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Digital_Music_5.json.gz",
+        "download_format": "gz",
+        "raw_subdir": "amazon-digital-music",
+        "ratings_file": "reviews_Digital_Music_5.json",
+        "format": "jsonl",
+        "column_map": {
+            "reviewerID": "user_id",
+            "asin": "item_id",
+            "overall": "rating",
+            "unixReviewTime": "timestamp",
+        },
+        "intensity_col": "rating",
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
+    "amazon-office-products": {
+        # McAuley 2014 Amazon Reviews, Office Products 5-core.
+        # ~4.9k users, ~2.4k items, ~53k reviews.
+        "url": "http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Office_Products_5.json.gz",
+        "download_format": "gz",
+        "raw_subdir": "amazon-office-products",
+        "ratings_file": "reviews_Office_Products_5.json",
+        "format": "jsonl",
+        "column_map": {
+            "reviewerID": "user_id",
+            "asin": "item_id",
+            "overall": "rating",
+            "unixReviewTime": "timestamp",
+        },
+        "intensity_col": "rating",
         "min_user_inter": 5,
         "min_item_inter": 5,
         "rating_threshold": 0,

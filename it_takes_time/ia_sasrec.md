@@ -18,8 +18,9 @@ Real implicit-feedback data carries far richer information — *how much* the
 user engaged with each item:
 
 - MovieLens: explicit rating in `{1, 2, 3, 4, 5}`
-- Steam: hours played in `[0, ∞)` (typical tail goes to 1000+)
+- Amazon reviews: explicit rating in `{1, 2, 3, 4, 5}` per review (with native unix timestamps)
 - News / e-commerce: dwell time, click frequency, purchase value
+- Hours-played / listen counts: implicit but unbounded in `[0, ∞)` (out of scope here — the public hours-played benchmarks we surveyed all lack timestamps)
 
 A literature sweep confirmed that while there is extensive work on optimizing
 SASRec hyperparameters and on handling implicit feedback at the loss / sampling
@@ -147,11 +148,14 @@ introduced without changing the rest of the architecture.
 
 ## 4. Normalisation
 
-Raw intensities are wildly heterogeneous (Steam hours: $0.1 \to 1000+$).
-Feeding raw values into a softmax causes catastrophic collapse:
-$\exp(1000)$ overflows to $+\infty$ and the attention distribution becomes
-a one-hot on the single highest-intensity item. Normalisation is
-**load-bearing**, not cosmetic.
+Raw intensities can be wildly heterogeneous (Steam hours: $0.1 \to 1000+$;
+review ratings: a bounded $\{1, \dots, 5\}$ which is much milder but still
+warrants per-user scaling). Feeding raw values into a softmax causes
+catastrophic collapse: $\exp(1000)$ overflows to $+\infty$ and the
+attention distribution becomes a one-hot on the single highest-intensity
+item. Normalisation is **load-bearing**, not cosmetic — even on bounded
+rating scales, per-user MinMax avoids batch-level rating bias dominating
+the attention.
 
 Per the original `sasrec_advances.md` analysis (§4 of that file), MinMax
 scaling per user or a $\log(1+x)$ transformation tame the long tail. The
@@ -183,8 +187,8 @@ ablation axis for the paper.
 |------|------|
 | [src/models/variants/ia_sasrec.py](src/models/variants/ia_sasrec.py) | `IASASRecBase`, `IASASRecAdd/Mul/Val`, `IAMultiHeadAttention`, `IATransformerLayer`, `IATransformerEncoder`, `normalise_intensity` |
 | [src/models/__init__.py](src/models/__init__.py) | Registers the three variants and `ia_sasrec_space`; inlines SASRec yaml defaults that RecBole skips for non-built-in classes |
-| [src/data.py](src/data.py) | Writes the `intensity:float` column into `.inter`; Steam downloader via `kagglehub` |
-| [src/config.py](src/config.py) | Adds `INTENSITY_FIELD` to common config; declares ML-1M and Steam dataset specs |
+| [src/data.py](src/data.py) | Writes the `intensity:float` column into `.inter`; HTTP-zip, gzip-json, and Kaggle downloaders |
+| [src/config.py](src/config.py) | Adds `INTENSITY_FIELD` to common config; declares ML-100K, Amazon Digital Music, Amazon Office Products dataset specs |
 | [src/runner.py](src/runner.py) | Passes the class object (not name) to RecBole's `Config` for custom variants; `invalidate_cache(dataset, model=None)` helper |
 | [tests/](tests/) | 27 pytest unit / regression tests |
 
@@ -199,8 +203,8 @@ user_id:token   item_id:token   timestamp:float   intensity:float
 2               260             978824291         4
 ```
 
-`intensity:float` is the **raw** signal (ratings 1–5 for MovieLens, hours for
-Steam) — normalisation happens inside the model so the file remains
+`intensity:float` is the **raw** signal (ratings 1–5 for MovieLens and Amazon
+reviews) — normalisation happens inside the model so the file remains
 human-readable.
 
 `token` tells RecBole to remap user / item IDs to contiguous integers starting
@@ -267,12 +271,13 @@ serves every model — apples-to-apples comparison.
 
 | Dataset | Intensity signal | Source | Notes |
 |---------|------------------|--------|-------|
-| **ml-1m**  | Explicit rating 1–5  | GroupLens HTTP zip                                       | Downloads automatically |
-| **steam**  | Hours played         | Kaggle `tamber/steam-video-games` via `kagglehub`        | Drops `behavior == purchase` rows; synthesises monotonic timestamps by stable-sorting on hours within each user; needs `~/.kaggle/kaggle.json` once |
+| **ml-100k**                  | Explicit rating 1–5 | GroupLens HTTP zip                                | Native unix timestamps; downloads automatically |
+| **amazon-digital-music**     | Explicit rating 1–5 | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~5.5k users × ~3.6k items × ~64k reviews; native `unixReviewTime` |
+| **amazon-office-products**   | Explicit rating 1–5 | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~4.9k users × ~2.4k items × ~53k reviews; native `unixReviewTime` |
 
-Both are medium-sized after `min_user_inter ≥ 5`, `min_item_inter ≥ 5`
-filtering — fast enough for full Optuna HPO sweeps on a single GPU within
-a coffee break.
+All three datasets are small-to-medium after `min_user_inter ≥ 5`,
+`min_item_inter ≥ 5` filtering — fast enough for full Optuna HPO sweeps on
+a single GPU within a coffee break (and tolerable on CPU).
 
 ---
 
@@ -282,11 +287,11 @@ a coffee break.
 # One-time: invalidate cached baseline results since the .inter schema
 # changed (added the intensity column). After this, baselines retrain on
 # the new file so the comparison stays apples-to-apples.
-python -c "from runner import invalidate_cache; invalidate_cache('ml-1m')"
+python -c "from runner import invalidate_cache; invalidate_cache('ml-100k')"
 
 # Then open the notebook — IA-SASRec variants are in the default registry,
 # so they slot in alongside the baselines automatically.
-jupyter lab notebooks/0_movielens_1m_benchmark.ipynb
+jupyter lab notebooks/0_benchmark.ipynb
 ```
 
 Programmatic equivalent:
@@ -296,7 +301,7 @@ from data import prepare_recbole_dataset
 from hpo import run_optuna
 from runner import train_and_eval
 
-for ds in ["ml-1m", "steam"]:
+for ds in ["ml-100k", "amazon-digital-music", "amazon-office-products"]:
     prepare_recbole_dataset(ds)
     for name in ["SASRec", "IA-SASRec-Add", "IA-SASRec-Mul", "IA-SASRec-Val"]:
         hpo = run_optuna(ds, name)
@@ -330,8 +335,9 @@ pytest -q
   exposes `intensity_norm`
 - Runner: custom-variant `Config` construction bypasses RecBole's `get_model`
   scan; built-ins still use the name-based lookup
-- Data: 4-column `.inter` written correctly; Steam timestamp synthesis works
-  on a tiny synthetic fixture (no Kaggle auth required for the test)
+- Data: 4-column `.inter` written correctly on tiny synthetic fixtures for
+  each download path (HTTP zip, gzip-JSON, Kaggle); no network or Kaggle auth
+  required for the tests
 
 ---
 
@@ -350,17 +356,20 @@ pytest -q
    each corresponds to one of the three algebraic positions in the attention
    expression where `w` can be inserted. Derive equations (2)–(4) from
    equation (1).
-4. **Experiments.** ML-1M (rating intensity) and Steam (hours-played
-   intensity) — covering both bounded-discrete and continuous-long-tail
-   regimes. All 11 models × 2 datasets. Optuna TPE HPO with NDCG@10 as the
-   primary metric. Eval: full-vocabulary scoring → HR / NDCG / MRR / Recall
-   / Precision @ {10, 20, 50, 100}.
+4. **Experiments.** Three datasets, all with bounded explicit-rating intensity
+   and native unix timestamps: ML-100K, Amazon Digital Music 5-core, Amazon
+   Office Products 5-core. Two domains (movies, products) at comparable
+   scales let us separate domain effects from architectural ones. All 11
+   models × 3 datasets. Optuna TPE HPO with NDCG@10 as the primary metric.
+   Eval: full-vocabulary scoring → HR / NDCG / MRR / Recall / Precision @
+   {10, 20, 50, 100}.
 5. **Ablation: variants × normalisation.**
    `{Add, Mul, Val} × {log1p_minmax, minmax, zscore, none}` — a 3×4 table per
-   dataset. Demonstrates that (a) normalisation is load-bearing
-   (`none` → softmax collapse on Steam), and (b) the optimal variant depends
-   on the dataset (hypothesis: `Mul` favours noisy long-tail signals like
-   Steam hours; `Add` wins on bounded ratings; `Val` is a safe default).
+   dataset. Demonstrates that (a) normalisation is load-bearing even on
+   bounded rating scales, and (b) the optimal variant depends on the dataset
+   (hypothesis: `Add` wins on the bounded rating regimes here; `Mul` would
+   favour noisy long-tail signals if added later via a hours-played-style
+   dataset; `Val` is a safe default).
 6. **Discussion.** Per-dataset winner analysis; when each variant helps and
    why; cost analysis (extra parameters: 1 scalar `λ` per layer for `Add`,
    zero for `Mul`/`Val`).
@@ -375,10 +384,11 @@ pytest -q
 - **Reproducibility.** Optuna studies persist to SQLite under `results/hpo/`;
   individual model results persist to JSON under `results/eval/`. Both layers
   are resumable: kill and re-run the notebook freely.
-- **Steam timestamps are synthetic.** Steam-200k has no real timestamp;
-  we sort by hours-played within each user and assign monotonic synthetic
-  timestamps so RecBole's sequential dataloader can order the sequences.
-  Document this in the paper's "Datasets" section.
+- **No hours-played-style benchmark.** The popular hours-played datasets
+  (Steam-200k, HetRec LastFM-2K's aggregated listen counts) ship without
+  per-event timestamps, so they can't drive a sequential model honestly.
+  A future swap to McAuley's Steam Reviews (which has `unix_timestamp`
+  and hours per review) could revisit hours-played-as-intensity properly.
 - **`λ` per layer.** Each of `n_layers` IA-SASRec-Add transformer blocks has
   its own learnable `λ`. If you want a single global `λ`, share the parameter
   across layers in `IATransformerEncoder.__init__`.
