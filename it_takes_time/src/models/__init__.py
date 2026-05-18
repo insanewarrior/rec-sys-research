@@ -230,14 +230,14 @@ SearchSpaceFn = Callable[[optuna.Trial], dict[str, Any]]
 
 
 MODEL_REGISTRY: dict[str, ModelSpec] = {
-    "Pop":      {"class": "Pop",      "type": "general",    "search_space": pop_space},
-    "BPR":      {"class": "BPR",      "type": "general",    "search_space": bpr_space},
-    "ItemKNN":  {"class": "ItemKNN",  "type": "general",    "search_space": itemknn_space},
-    "FPMC":     {"class": "FPMC",     "type": "sequential", "search_space": fpmc_space,    "static": _bpr_static()},
-    "GRU4Rec":  {"class": "GRU4Rec",  "type": "sequential", "search_space": gru4rec_space, "static": _ce_static()},
-    "NARM":     {"class": "NARM",     "type": "sequential", "search_space": narm_space,    "static": _ce_static()},
+    # "Pop":      {"class": "Pop",      "type": "general",    "search_space": pop_space},
+    # "BPR":      {"class": "BPR",      "type": "general",    "search_space": bpr_space},
+    # "ItemKNN":  {"class": "ItemKNN",  "type": "general",    "search_space": itemknn_space},
+    # "FPMC":     {"class": "FPMC",     "type": "sequential", "search_space": fpmc_space,    "static": _bpr_static()},
+    # "GRU4Rec":  {"class": "GRU4Rec",  "type": "sequential", "search_space": gru4rec_space, "static": _ce_static()},
+    # "NARM":     {"class": "NARM",     "type": "sequential", "search_space": narm_space,    "static": _ce_static()},
     "SASRec":   {"class": "SASRec",   "type": "sequential", "search_space": sasrec_space,  "static": _ce_static()},
-    "BERT4Rec": {"class": "BERT4Rec", "type": "sequential", "search_space": bert4rec_space,"static": _ce_static()},
+    # "BERT4Rec": {"class": "BERT4Rec", "type": "sequential", "search_space": bert4rec_space,"static": _ce_static()},
     "IA-SASRec-Add": {"class": IASASRecAdd, "type": "sequential",
                       "search_space": ia_sasrec_space,
                       "static": {**_ce_static(), **_sasrec_yaml_defaults()}},
