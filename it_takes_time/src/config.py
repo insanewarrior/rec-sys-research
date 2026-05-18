@@ -49,7 +49,12 @@ DATASETS: dict[str, dict] = {
         "min_item_inter": 5,
         "rating_threshold": 0,
     },
-    "ml-100k": {
+    # NOTE: must not be literally "ml-100k" — RecBole 1.2.0's Configurator
+    # hard-codes that name and overrides `data_path` to its bundled
+    # `dataset_example/ml-100k/` (a 3-column rating-only file), which silently
+    # drops our `intensity:float` column. See
+    # site-packages/recbole/config/configurator.py:_set_default_parameters.
+    "ml-100k-iar": {
         "url": "https://files.grouplens.org/datasets/movielens/ml-100k.zip",
         "raw_subdir": "ml-100k",
         "ratings_file": "u.data",

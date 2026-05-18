@@ -204,7 +204,11 @@ def save_result(dataset_name: str, model_name: str, result: dict[str, Any]) -> P
     return p
 
 
-def invalidate_cache(dataset_name: str, model_name: str | None = None) -> list[Path]:
+def invalidate_cache(
+    dataset_name: str,
+    model_name: str | None = None,
+    also_recbole_cache: bool = False,
+) -> list[Path]:
     """Delete cached result JSON files so the next run retrains from scratch.
 
     Use this after changing the underlying ``.inter`` schema (e.g. adding the
@@ -214,6 +218,12 @@ def invalidate_cache(dataset_name: str, model_name: str | None = None) -> list[P
         dataset_name: RecBole dataset identifier.
         model_name: If given, only delete that single model's result; otherwise
             delete every cached result for the dataset.
+        also_recbole_cache: If ``True``, also remove RecBole's pickled
+            ``<dataset>-Dataset.pth`` / ``<dataset>-SequentialDataset.pth``
+            under ``CHECKPOINT_DIR``. Required when the ``.inter`` schema or
+            ``load_col`` changes, because ``recbole.data.create_dataset``
+            silently loads the pickle whenever its ``dataset_arguments`` match,
+            regardless of ``save_dataset``.
 
     Returns:
         List of removed file paths.
@@ -222,13 +232,18 @@ def invalidate_cache(dataset_name: str, model_name: str | None = None) -> list[P
         targets = [eval_path(dataset_name, model_name)]
     else:
         targets = sorted(EVAL_DIR.glob(f"{dataset_name}__*.json"))
+    if also_recbole_cache:
+        targets += [
+            CHECKPOINT_DIR / f"{dataset_name}-Dataset.pth",
+            CHECKPOINT_DIR / f"{dataset_name}-SequentialDataset.pth",
+        ]
     removed: list[Path] = []
     for p in targets:
         if p.exists():
             p.unlink()
             removed.append(p)
     if removed:
-        print(f"[runner] Invalidated {len(removed)} cached result(s) for {dataset_name}.")
+        print(f"[runner] Invalidated {len(removed)} cached file(s) for {dataset_name}.")
     return removed
 
 

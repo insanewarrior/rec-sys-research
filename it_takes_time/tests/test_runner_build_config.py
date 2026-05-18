@@ -36,7 +36,7 @@ def test_build_config_custom_variant_skips_get_model(monkeypatch):
     monkeypatch.setattr(cfg_mod, "get_model", _boom)
 
     cfg, model_cls = runner._build_config(
-        "ml-100k", "IA-SASRec-Add", overrides={}, epochs=1, saved=False
+        "ml-100k-iar", "IA-SASRec-Add", overrides={}, epochs=1, saved=False
     )
     assert model_cls is IASASRecAdd
     assert isinstance(cfg, Config)
@@ -58,7 +58,7 @@ def test_build_config_builtin_still_uses_name(monkeypatch):
     monkeypatch.setattr(cfg_mod, "get_model", _spy)
 
     cfg, model_cls = runner._build_config(
-        "ml-100k", "SASRec", overrides={}, epochs=1, saved=False
+        "ml-100k-iar", "SASRec", overrides={}, epochs=1, saved=False
     )
     assert model_cls is None  # built-in path returns class=None
     assert "SASRec" in calls

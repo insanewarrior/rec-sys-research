@@ -6,6 +6,7 @@ resumable: re-running with the same study name continues from completed trials.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from typing import Any
 
@@ -19,6 +20,19 @@ from runner import train_one
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 logger = logging.getLogger(__name__)
+
+
+def _stable_seed(dataset_name: str, model_name: str) -> int:
+    """Deterministic 32-bit seed derived from (dataset, model).
+
+    Python's builtin ``hash`` is process-salted (PYTHONHASHSEED=random by
+    default), so different runs would pick different sampler seeds. We need
+    stability across runs *and* divergence across (dataset, model) pairs so
+    the three IA-SASRec variants don't re-walk the identical 25-point search
+    trajectory.
+    """
+    h = hashlib.blake2b(f"{dataset_name}__{model_name}".encode(), digest_size=4)
+    return int.from_bytes(h.digest(), "big")
 
 
 def _study_storage(dataset_name: str, model_name: str) -> str:
@@ -106,7 +120,7 @@ def run_optuna(
         storage=_study_storage(dataset_name, model_name),
         load_if_exists=True,
         direction="maximize",
-        sampler=TPESampler(seed=42),
+        sampler=TPESampler(seed=_stable_seed(dataset_name, model_name)),
         pruner=MedianPruner(n_warmup_steps=2),
     )
 

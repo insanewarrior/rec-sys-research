@@ -230,6 +230,10 @@ class IASASRecBase(SASRec):
     """
 
     intensity_mode: str = "add"  # overridden by subclasses
+    # When True, raise if `intensity_list` is absent at runtime instead of
+    # silently degrading to vanilla SASRec. Tests that hand-craft batches
+    # without the field can flip this to False.
+    strict_intensity: bool = True
 
     def __init__(self, config, dataset):
         super().__init__(config, dataset)
@@ -257,9 +261,15 @@ class IASASRecBase(SASRec):
     def _resolve_intensity(self, interaction, item_seq):
         """Pull and normalise the intensity sequence from the interaction batch."""
         if self.intensity_list_field not in interaction.interaction:
-            # Fall back to uniform attention if the field is missing (shouldn't
-            # happen with the standard pipeline, but keeps the model usable in
-            # isolation tests).
+            if self.strict_intensity:
+                raise RuntimeError(
+                    f"IA-SASRec batch is missing '{self.intensity_list_field}'. "
+                    f"Present keys: {sorted(interaction.interaction.keys())}. "
+                    f"This usually means RecBole loaded the wrong .inter file — "
+                    f"e.g. the dataset name is literally 'ml-100k', which RecBole "
+                    f"1.2.0 hard-overrides to its bundled 3-column example. "
+                    f"Rename the dataset and check `cfg['data_path']`."
+                )
             return None
         raw = interaction[self.intensity_list_field]
         mask = item_seq != 0

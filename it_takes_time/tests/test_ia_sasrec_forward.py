@@ -108,11 +108,27 @@ def test_add_variant_lambda_receives_gradient():
     assert torch.isfinite(lam.grad).all()
 
 
-def test_missing_intensity_field_falls_back_gracefully():
-    """If the dataloader is missing ``intensity_list`` the model should still
-    produce a finite forward pass (the attention reverts to vanilla)."""
+def test_missing_intensity_field_raises_by_default():
+    """A missing ``intensity_list`` field is a silent-failure landmine: the
+    three variants all collapse to vanilla SASRec and produce bit-identical
+    HPO trajectories. The strict-by-default fallback ensures we notice
+    immediately instead of after a 25-trial sweep."""
     n_items = 50
     model = IASASRecAdd(_make_config(), _StubDataset(n_items)).eval()
+    item_seq = torch.randint(1, n_items, (2, 8))
+    batch = Interaction({"item_id_list": item_seq,
+                          "item_length": torch.tensor([8, 6]),
+                          "item_id": torch.randint(1, n_items, (2,))})
+    with pytest.raises(RuntimeError, match="intensity"):
+        model._resolve_intensity(batch, item_seq)
+
+
+def test_missing_intensity_field_opt_out_returns_none():
+    """``strict_intensity=False`` preserves the legacy graceful fallback for
+    test scaffolding that hand-rolls batches without intensity."""
+    n_items = 50
+    model = IASASRecAdd(_make_config(), _StubDataset(n_items)).eval()
+    model.strict_intensity = False
     item_seq = torch.randint(1, n_items, (2, 8))
     item_seq_len = torch.tensor([8, 6])
     batch = Interaction({"item_id_list": item_seq, "item_length": item_seq_len,

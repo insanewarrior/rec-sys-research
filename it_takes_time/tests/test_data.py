@@ -32,8 +32,8 @@ def test_intensity_column_written_csv(tmp_path, monkeypatch):
         "3\t102\t3\t2\n"
     )
 
-    out_dir = data_mod.prepare_recbole_dataset("ml-100k")
-    inter = out_dir / "ml-100k.inter"
+    out_dir = data_mod.prepare_recbole_dataset("ml-100k-iar")
+    inter = out_dir / "ml-100k-iar.inter"
     assert inter.exists()
     text = inter.read_text().splitlines()
     assert text[0] == "user_id:token\titem_id:token\ttimestamp:float\tintensity:float"
