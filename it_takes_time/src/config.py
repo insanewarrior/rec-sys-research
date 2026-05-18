@@ -78,6 +78,44 @@ DATASETS: dict[str, dict] = {
         "min_item_inter": 5,
         "rating_threshold": 0,
     },
+    "amazon-digital-music": {
+        # McAuley 2014 Amazon Reviews, Digital Music 5-core. Native (rating, unix_timestamp).
+        # ~5.5k users, ~3.6k items, ~64k reviews.
+        "url": "http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Digital_Music_5.json.gz",
+        "download_format": "gz",
+        "raw_subdir": "amazon-digital-music",
+        "ratings_file": "reviews_Digital_Music_5.json",
+        "format": "jsonl",
+        "column_map": {
+            "reviewerID": "user_id",
+            "asin": "item_id",
+            "overall": "rating",
+            "unixReviewTime": "timestamp",
+        },
+        "intensity_col": "rating",
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
+    "amazon-office-products": {
+        # McAuley 2014 Amazon Reviews, Office Products 5-core.
+        # ~4.9k users, ~2.4k items, ~53k reviews.
+        "url": "http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/reviews_Office_Products_5.json.gz",
+        "download_format": "gz",
+        "raw_subdir": "amazon-office-products",
+        "ratings_file": "reviews_Office_Products_5.json",
+        "format": "jsonl",
+        "column_map": {
+            "reviewerID": "user_id",
+            "asin": "item_id",
+            "overall": "rating",
+            "unixReviewTime": "timestamp",
+        },
+        "intensity_col": "rating",
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
 }
 
 

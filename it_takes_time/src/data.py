@@ -15,6 +15,7 @@ is a no-op. That keeps notebook re-runs cheap.
 
 from __future__ import annotations
 
+import gzip
 import io
 import urllib.request
 import zipfile
@@ -40,6 +41,18 @@ def _download_and_unzip(url: str, target_dir: Path) -> None:
     with zipfile.ZipFile(io.BytesIO(zbytes)) as zf:
         zf.extractall(target_dir)
     print(f"[data] Extracted to {target_dir}")
+
+
+def _download_and_gunzip(url: str, target_dir: Path, out_file: str) -> None:
+    """Download a gzip-compressed file from *url* and write it decompressed to *target_dir/out_file*."""
+    target_dir.mkdir(parents=True, exist_ok=True)
+    print(f"[data] Downloading {url} ...")
+    with urllib.request.urlopen(url) as resp:
+        gz_bytes = resp.read()
+    out_path = target_dir / out_file
+    with gzip.open(io.BytesIO(gz_bytes)) as gz:
+        out_path.write_bytes(gz.read())
+    print(f"[data] Wrote {out_path}")
 
 
 def _download_via_kagglehub(kaggle_dataset: str, target_dir: Path, ratings_file: str) -> None:
@@ -97,7 +110,10 @@ def _ensure_raw(dataset_name: str) -> Path:
     if "kaggle_dataset" in spec:
         _download_via_kagglehub(spec["kaggle_dataset"], raw_dir, spec["ratings_file"])
     elif "url" in spec:
-        _download_and_unzip(spec["url"], DATA_DIR)
+        if spec.get("download_format") == "gz":
+            _download_and_gunzip(spec["url"], raw_dir, spec["ratings_file"])
+        else:
+            _download_and_unzip(spec["url"], DATA_DIR)
     else:
         raise FileNotFoundError(
             f"No download source configured for {dataset_name}; "
@@ -135,14 +151,19 @@ def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
         return out_dir
 
     raw_dir = _ensure_raw(dataset_name)
-    df = pd.read_csv(
-        raw_dir / spec["ratings_file"],
-        sep=spec["sep"],
-        names=spec["columns"],
-        header=None,
-        engine="python",
-        encoding="latin-1",
-    )
+    if spec.get("format") == "jsonl":
+        df = pd.read_json(raw_dir / spec["ratings_file"], lines=True)
+        if spec.get("column_map"):
+            df = df.rename(columns=spec["column_map"])
+    else:
+        df = pd.read_csv(
+            raw_dir / spec["ratings_file"],
+            sep=spec["sep"],
+            names=spec["columns"],
+            header=None,
+            engine="python",
+            encoding="latin-1",
+        )
 
     behavior_filter = spec.get("behavior_filter")
     if behavior_filter is not None and "behavior" in df.columns:
