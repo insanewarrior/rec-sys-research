@@ -32,7 +32,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.i
 TOP_K = [10, 20, 50, 100]
 PRIMARY_METRIC = "ndcg@10"
 
-N_TRIALS = int(os.environ.get("N_TRIALS", "10"))
+N_TRIALS = int(os.environ.get("N_TRIALS", "25"))
 HPO_EPOCHS = int(os.environ.get("HPO_EPOCHS", "10"))
 FINAL_EPOCHS = int(os.environ.get("FINAL_EPOCHS", "50"))
 EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
