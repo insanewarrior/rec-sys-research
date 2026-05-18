@@ -1,33 +1,39 @@
-"""Smoke test for the extended ``.inter`` writer with intensity column."""
+"""Smoke tests for the ``.inter`` writer across download paths."""
 from __future__ import annotations
+
+import json
 
 import pandas as pd
 
 
-def test_intensity_column_written(tmp_path, monkeypatch):
+def _patch_paths(monkeypatch, tmp_path):
     import config
     import data as data_mod
 
-    raw = tmp_path / "raw" / "ml-1m"
-    raw.mkdir(parents=True)
-    # Three users, eight interactions, ratings 1..5.
-    (raw / "ratings.dat").write_text(
-        "1::100::5::1\n"
-        "1::101::3::2\n"
-        "1::102::4::3\n"
-        "2::100::2::1\n"
-        "2::103::5::2\n"
-        "2::104::1::3\n"
-        "3::101::4::1\n"
-        "3::102::3::2\n"
-    )
     monkeypatch.setattr(config, "DATA_DIR", tmp_path / "raw")
     monkeypatch.setattr(config, "RECBOLE_DATA_DIR", tmp_path / "rb")
     monkeypatch.setattr(data_mod, "DATA_DIR", tmp_path / "raw")
     monkeypatch.setattr(data_mod, "RECBOLE_DATA_DIR", tmp_path / "rb")
+    return data_mod
 
-    out_dir = data_mod.prepare_recbole_dataset("ml-1m")
-    inter = out_dir / "ml-1m.inter"
+
+def test_intensity_column_written_csv(tmp_path, monkeypatch):
+    data_mod = _patch_paths(monkeypatch, tmp_path)
+    raw = tmp_path / "raw" / "ml-100k"
+    raw.mkdir(parents=True)
+    (raw / "u.data").write_text(
+        "1\t100\t5\t1\n"
+        "1\t101\t3\t2\n"
+        "1\t102\t4\t3\n"
+        "2\t100\t2\t1\n"
+        "2\t103\t5\t2\n"
+        "2\t104\t1\t3\n"
+        "3\t101\t4\t1\n"
+        "3\t102\t3\t2\n"
+    )
+
+    out_dir = data_mod.prepare_recbole_dataset("ml-100k")
+    inter = out_dir / "ml-100k.inter"
     assert inter.exists()
     text = inter.read_text().splitlines()
     assert text[0] == "user_id:token\titem_id:token\ttimestamp:float\tintensity:float"
@@ -39,34 +45,26 @@ def test_intensity_column_written(tmp_path, monkeypatch):
     assert not df["intensity"].isna().any()
 
 
-def test_steam_synthesises_timestamps(tmp_path, monkeypatch):
-    import config
-    import data as data_mod
-
-    raw = tmp_path / "raw" / "steam"
+def test_jsonl_amazon_column_map(tmp_path, monkeypatch):
+    data_mod = _patch_paths(monkeypatch, tmp_path)
+    raw = tmp_path / "raw" / "amazon-digital-music"
     raw.mkdir(parents=True)
-    # Steam-200k CSV: user,item,behavior,hours,extra
-    (raw / "steam-200k.csv").write_text(
-        "1,Game A,play,5.5,0\n"
-        "1,Game B,play,12.0,0\n"
-        "1,Game A,purchase,1.0,0\n"   # should be filtered out
-        "2,Game A,play,0.3,0\n"
-        "2,Game C,play,40.0,0\n"
-        "3,Game B,play,2.0,0\n"
-        "3,Game C,play,15.0,0\n"
-        "3,Game A,play,7.0,0\n"
+    records = [
+        {"reviewerID": "A1", "asin": "I1", "overall": 5.0, "unixReviewTime": 1000},
+        {"reviewerID": "A1", "asin": "I2", "overall": 3.0, "unixReviewTime": 1100},
+        {"reviewerID": "A2", "asin": "I1", "overall": 4.0, "unixReviewTime": 1050},
+    ]
+    (raw / "reviews_Digital_Music_5.json").write_text(
+        "\n".join(json.dumps(r) for r in records)
     )
-    monkeypatch.setattr(config, "DATA_DIR", tmp_path / "raw")
-    monkeypatch.setattr(config, "RECBOLE_DATA_DIR", tmp_path / "rb")
-    monkeypatch.setattr(data_mod, "DATA_DIR", tmp_path / "raw")
-    monkeypatch.setattr(data_mod, "RECBOLE_DATA_DIR", tmp_path / "rb")
 
-    out_dir = data_mod.prepare_recbole_dataset("steam")
-    inter = out_dir / "steam.inter"
+    out_dir = data_mod.prepare_recbole_dataset("amazon-digital-music")
+    inter = out_dir / "amazon-digital-music.inter"
     df = pd.read_csv(inter, sep="\t")
     df.columns = [c.split(":")[0] for c in df.columns]
-    # 7 play rows after dropping the purchase row.
-    assert len(df) == 7
-    # Synthesised timestamps must be strictly increasing globally.
-    assert (df["timestamp"].diff().dropna() >= 0).all()
-    assert df["intensity"].min() > 0
+    assert len(df) == 3
+    assert set(df.columns) == {"user_id", "item_id", "timestamp", "intensity"}
+    # column_map renamed reviewerID/asin/overall/unixReviewTime correctly
+    assert set(df["user_id"]) == {"A1", "A2"}
+    assert set(df["item_id"]) == {"I1", "I2"}
+    assert df["intensity"].between(3.0, 5.0).all()

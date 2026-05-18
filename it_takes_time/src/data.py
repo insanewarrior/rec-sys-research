@@ -21,7 +21,6 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from config import DATA_DIR, DATASETS, RECBOLE_DATA_DIR
@@ -165,21 +164,11 @@ def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
             encoding="latin-1",
         )
 
-    behavior_filter = spec.get("behavior_filter")
-    if behavior_filter is not None and "behavior" in df.columns:
-        df = df[df["behavior"] == behavior_filter]
-
     if spec.get("rating_threshold", 0) > 0:
         df = df[df["rating"] >= spec["rating_threshold"]]
 
     intensity_col = spec["intensity_col"]
     df = df.rename(columns={intensity_col: "intensity"})
-
-    if spec.get("synthesize_timestamp", False):
-        # Stable order within a user by intensity (lower → earlier); produces a
-        # monotonic synthetic timestamp that SequentialDataset can sort on.
-        df = df.sort_values(["user_id", "intensity"], kind="mergesort")
-        df["timestamp"] = np.arange(len(df), dtype=np.int64)
 
     df = df[["user_id", "item_id", "timestamp", "intensity"]]
     df = df.sort_values(["user_id", "timestamp"], kind="mergesort")

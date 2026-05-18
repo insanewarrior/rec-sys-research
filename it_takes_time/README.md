@@ -1,11 +1,12 @@
 # It Takes Time
 
-Sequential-recommender benchmark on **MovieLens-1M** and **Steam-200k**,
-comparing SOTA baselines (SASRec, BERT4Rec, GRU4Rec, NARM, FPMC, Pop, BPR,
-ItemKNN) against three new **IA-SASRec** (Intensity-Aware SASRec) variants
-that inject per-interaction strength (ratings, hours-played) directly into
-the self-attention mechanism. One reproducible methodology, **Optuna** HPO,
-on-disk resumability, 27 pytest tests.
+Sequential-recommender benchmark on **MovieLens-100K**, **Amazon Digital
+Music 5-core**, and **Amazon Office Products 5-core**, comparing SOTA
+baselines (SASRec, BERT4Rec, GRU4Rec, NARM, FPMC, Pop, BPR, ItemKNN) against
+three new **IA-SASRec** (Intensity-Aware SASRec) variants that inject
+per-interaction strength (rating) directly into the self-attention
+mechanism. One reproducible methodology, **Optuna** HPO, on-disk
+resumability, 27 pytest tests.
 
 ## Why
 
@@ -44,7 +45,7 @@ it_takes_time/
 ├── ia_sasrec.md                # theory + implementation reference for IA-SASRec
 ├── sasrec_advances.md          # original brainstorm / design doc
 ├── src/
-│   ├── config.py               # paths, dataset registry (ml-1m, ml-100k, steam), HPO knobs
+│   ├── config.py               # paths, dataset registry (ml-100k, amazon-digital-music, amazon-office-products), HPO knobs
 │   ├── data.py                 # downloads + writes 4-column .inter (user, item, ts, intensity)
 │   ├── hpo.py                  # Optuna study, persisted to SQLite
 │   ├── runner.py               # train + eval + invalidate_cache, resumable via results/eval/*.json
@@ -55,7 +56,7 @@ it_takes_time/
 │           └── ia_sasrec.py    # IASASRecBase + Add/Mul/Val + IAMultiHeadAttention
 ├── tests/                      # 27 pytest tests (math, registry, runner, data)
 └── notebooks/
-    └── 0_movielens_1m_benchmark.ipynb   # loops over both datasets × full registry
+    └── 0_benchmark.ipynb   # loops over all datasets × full registry
 ```
 
 ## Setup
@@ -66,17 +67,17 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
 ```
 
-For the Steam dataset, configure Kaggle credentials once — drop
-`~/.kaggle/kaggle.json` in place, or export `KAGGLE_USERNAME` and
-`KAGGLE_KEY`. ML-1M downloads automatically with no auth.
+All three datasets download automatically over plain HTTP — no credentials
+required.
 
-GPU optional. CPU is fine for ML-1M; SASRec ~5 min/run on a modern laptop.
+GPU optional. CPU is fine for these dataset sizes — most sequential models
+run in single-digit minutes per HPO trial.
 
 ## Run
 
-Open `notebooks/0_movielens_1m_benchmark.ipynb` and run top-to-bottom. It
-loops over `["ml-1m", "steam"]` × the full model registry (including the
-three IA-SASRec variants).
+Open `notebooks/0_benchmark.ipynb` and run top-to-bottom. It loops over
+`["ml-100k", "amazon-digital-music", "amazon-office-products"]` × the full
+model registry (including the three IA-SASRec variants).
 
 Knobs (env vars):
 
@@ -94,7 +95,7 @@ baseline results from before this change must be regenerated for the
 comparison to remain valid:
 
 ```bash
-python -c "from runner import invalidate_cache; invalidate_cache('ml-1m')"
+python -c "from runner import invalidate_cache; invalidate_cache('ml-100k')"
 ```
 
 Then re-run the notebook — the baselines retrain on the new file, IA-SASRec
@@ -122,7 +123,7 @@ inlined SASRec yaml defaults), and data-pipeline format checks.
 - `results/checkpoints/` — RecBole-saved best-model `.pth` files.
 
 To re-run a single model from scratch:
-`from runner import invalidate_cache; invalidate_cache("ml-1m", "SASRec")`,
+`from runner import invalidate_cache; invalidate_cache("ml-100k", "SASRec")`,
 optionally also delete its HPO DB, then re-run the benchmark cell.
 
 ## Adding a custom variant
@@ -138,11 +139,11 @@ See section 7 of the notebook, or use IA-SASRec as a worked example:
 
 ## Datasets
 
-| Key       | Source                                            | Intensity signal        |
-|-----------|---------------------------------------------------|-------------------------|
-| `ml-1m`   | GroupLens HTTP zip                                | Rating 1–5              |
-| `ml-100k` | GroupLens HTTP zip                                | Rating 1–5              |
-| `steam`   | Kaggle `tamber/steam-video-games` via `kagglehub` | Hours played            |
+| Key                       | Source                                                  | Intensity signal | Notes                                          |
+|---------------------------|---------------------------------------------------------|------------------|------------------------------------------------|
+| `ml-100k`                 | GroupLens HTTP zip                                      | Rating 1–5       | Native unix timestamps                         |
+| `amazon-digital-music`    | snap.stanford.edu JSON-gz (McAuley 2014 5-core)         | Rating 1–5       | ~5.5k users × ~3.6k items × ~64k reviews       |
+| `amazon-office-products`  | snap.stanford.edu JSON-gz (McAuley 2014 5-core)         | Rating 1–5       | ~4.9k users × ~2.4k items × ~53k reviews       |
 
 To add another: append an entry to `DATASETS` in `src/config.py` with its
 download spec, intensity column, and any pre-filters — `data.py` handles

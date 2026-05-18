@@ -38,17 +38,6 @@ FINAL_EPOCHS = int(os.environ.get("FINAL_EPOCHS", "50"))
 EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
 
 DATASETS: dict[str, dict] = {
-    "ml-1m": {
-        "url": "https://files.grouplens.org/datasets/movielens/ml-1m.zip",
-        "raw_subdir": "ml-1m",
-        "ratings_file": "ratings.dat",
-        "sep": "::",
-        "columns": ["user_id", "item_id", "rating", "timestamp"],
-        "intensity_col": "rating",  # 1..5 explicit; doubles as intensity for IA-SASRec
-        "min_user_inter": 5,
-        "min_item_inter": 5,
-        "rating_threshold": 0,
-    },
     "ml-100k": {
         "url": "https://files.grouplens.org/datasets/movielens/ml-100k.zip",
         "raw_subdir": "ml-100k",
@@ -56,24 +45,6 @@ DATASETS: dict[str, dict] = {
         "sep": "\t",
         "columns": ["user_id", "item_id", "rating", "timestamp"],
         "intensity_col": "rating",
-        "min_user_inter": 5,
-        "min_item_inter": 5,
-        "rating_threshold": 0,
-    },
-    "steam": {
-        # Steam-200k (Tamber/Kaggle) — true implicit feedback with hours-played intensity.
-        # Fetched via kagglehub; needs ``~/.kaggle/kaggle.json`` or the env vars
-        # ``KAGGLE_USERNAME`` + ``KAGGLE_KEY`` to be set once. The CSV has no
-        # timestamps; we synthesize them by stable-sorting on hours so
-        # higher-engagement plays appear later in the user's sequence.
-        "kaggle_dataset": "tamber/steam-video-games",
-        "raw_subdir": "steam",
-        "ratings_file": "steam-200k.csv",
-        "sep": ",",
-        "columns": ["user_id", "item_id", "behavior", "hours", "extra"],
-        "intensity_col": "hours",
-        "behavior_filter": "play",   # drop "purchase" rows (hours==1.0 sentinel)
-        "synthesize_timestamp": True,
         "min_user_inter": 5,
         "min_item_inter": 5,
         "rating_threshold": 0,
