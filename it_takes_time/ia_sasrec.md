@@ -188,7 +188,7 @@ ablation axis for the paper.
 | [src/models/variants/ia_sasrec.py](src/models/variants/ia_sasrec.py) | `IASASRecBase`, `IASASRecAdd/Mul/Val`, `IAMultiHeadAttention`, `IATransformerLayer`, `IATransformerEncoder`, `normalise_intensity` |
 | [src/models/__init__.py](src/models/__init__.py) | Registers the three variants and `ia_sasrec_space`; inlines SASRec yaml defaults that RecBole skips for non-built-in classes |
 | [src/data.py](src/data.py) | Writes the `intensity:float` column into `.inter`; HTTP-zip, gzip-json, and Kaggle downloaders |
-| [src/config.py](src/config.py) | Adds `INTENSITY_FIELD` to common config; declares ML-100K, Amazon Digital Music, Amazon Office Products dataset specs |
+| [src/config.py](src/config.py) | Adds `INTENSITY_FIELD` to common config; declares ML-1M, ML-100K, Amazon Digital Music, Amazon Office Products dataset specs |
 | [src/runner.py](src/runner.py) | Passes the class object (not name) to RecBole's `Config` for custom variants; `invalidate_cache(dataset, model=None)` helper |
 | [tests/](tests/) | 27 pytest unit / regression tests |
 
@@ -271,11 +271,12 @@ serves every model — apples-to-apples comparison.
 
 | Dataset | Intensity signal | Source | Notes |
 |---------|------------------|--------|-------|
-| **ml-100k**                  | Explicit rating 1–5 | GroupLens HTTP zip                                | Native unix timestamps; downloads automatically |
+| **ml-1m**                    | Explicit rating 1–5 | GroupLens HTTP zip                                | Native unix timestamps; downloads automatically |
+| **ml-100k**                  | Explicit rating 1–5 | GroupLens HTTP zip                                | Native unix timestamps; ~10× smaller than ml-1m |
 | **amazon-digital-music**     | Explicit rating 1–5 | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~5.5k users × ~3.6k items × ~64k reviews; native `unixReviewTime` |
 | **amazon-office-products**   | Explicit rating 1–5 | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~4.9k users × ~2.4k items × ~53k reviews; native `unixReviewTime` |
 
-All three datasets are small-to-medium after `min_user_inter ≥ 5`,
+All four datasets are small-to-medium after `min_user_inter ≥ 5`,
 `min_item_inter ≥ 5` filtering — fast enough for full Optuna HPO sweeps on
 a single GPU within a coffee break (and tolerable on CPU).
 
@@ -301,7 +302,7 @@ from data import prepare_recbole_dataset
 from hpo import run_optuna
 from runner import train_and_eval
 
-for ds in ["ml-100k", "amazon-digital-music", "amazon-office-products"]:
+for ds in ["ml-1m", "ml-100k", "amazon-digital-music", "amazon-office-products"]:
     prepare_recbole_dataset(ds)
     for name in ["SASRec", "IA-SASRec-Add", "IA-SASRec-Mul", "IA-SASRec-Val"]:
         hpo = run_optuna(ds, name)
@@ -356,13 +357,13 @@ pytest -q
    each corresponds to one of the three algebraic positions in the attention
    expression where `w` can be inserted. Derive equations (2)–(4) from
    equation (1).
-4. **Experiments.** Three datasets, all with bounded explicit-rating intensity
-   and native unix timestamps: ML-100K, Amazon Digital Music 5-core, Amazon
-   Office Products 5-core. Two domains (movies, products) at comparable
-   scales let us separate domain effects from architectural ones. All 11
-   models × 3 datasets. Optuna TPE HPO with NDCG@10 as the primary metric.
-   Eval: full-vocabulary scoring → HR / NDCG / MRR / Recall / Precision @
-   {10, 20, 50, 100}.
+4. **Experiments.** Four datasets, all with bounded explicit-rating intensity
+   and native unix timestamps: ML-1M, ML-100K, Amazon Digital Music 5-core,
+   Amazon Office Products 5-core. Two domains (movies, products) × two scales
+   let us separate domain effects from data-volume effects. All 11 models × 4
+   datasets. Optuna TPE HPO with NDCG@10 as the primary metric. Eval:
+   full-vocabulary scoring → HR / NDCG / MRR / Recall / Precision @ {10, 20,
+   50, 100}.
 5. **Ablation: variants × normalisation.**
    `{Add, Mul, Val} × {log1p_minmax, minmax, zscore, none}` — a 3×4 table per
    dataset. Demonstrates that (a) normalisation is load-bearing even on
