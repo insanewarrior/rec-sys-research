@@ -1,0 +1,60 @@
+{
+  "model": "ItemKNN",
+  "dataset": "ml-100k",
+  "best_params": {
+    "k": 250,
+    "shrink": 0.026368084405807513
+  },
+  "best_valid_score": 0.072,
+  "best_valid_result": {
+    "recall@10": 0.1453,
+    "recall@20": 0.21,
+    "recall@50": 0.3796,
+    "recall@100": 0.5419,
+    "mrr@10": 0.05,
+    "mrr@20": 0.0546,
+    "mrr@50": 0.0601,
+    "mrr@100": 0.0624,
+    "ndcg@10": 0.072,
+    "ndcg@20": 0.0884,
+    "ndcg@50": 0.1223,
+    "ndcg@100": 0.1487,
+    "hit@10": 0.1453,
+    "hit@20": 0.21,
+    "hit@50": 0.3796,
+    "hit@100": 0.5419,
+    "precision@10": 0.0145,
+    "precision@20": 0.0105,
+    "precision@50": 0.0076,
+    "precision@100": 0.0054
+  },
+  "test_result": {
+    "recall@10": 0.1177,
+    "recall@20": 0.1909,
+    "recall@50": 0.3404,
+    "recall@100": 0.4942,
+    "mrr@10": 0.0446,
+    "mrr@20": 0.0494,
+    "mrr@50": 0.0541,
+    "mrr@100": 0.0562,
+    "ndcg@10": 0.0615,
+    "ndcg@20": 0.0796,
+    "ndcg@50": 0.1091,
+    "ndcg@100": 0.134,
+    "hit@10": 0.1177,
+    "hit@20": 0.1909,
+    "hit@50": 0.3404,
+    "hit@100": 0.4942,
+    "precision@10": 0.0118,
+    "precision@20": 0.0095,
+    "precision@50": 0.0068,
+    "precision@100": 0.0049
+  },
+  "train_seconds": 1.9074556827545166,
+  "checkpoint": "ItemKNN-May-18-2026_14-35-04.pth",
+  "config_dict": {
+    "k": 250,
+    "shrink": 0.026368084405807513
+  },
+  "completed_at": "2026-05-18 14:35:07"
+}

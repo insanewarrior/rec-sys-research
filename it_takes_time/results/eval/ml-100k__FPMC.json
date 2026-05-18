@@ -1,0 +1,60 @@
+{
+  "model": "FPMC",
+  "dataset": "ml-100k",
+  "best_params": {
+    "embedding_size": 64,
+    "learning_rate": 0.0044447541666908135
+  },
+  "best_valid_score": 0.054,
+  "best_valid_result": {
+    "recall@10": 0.1124,
+    "recall@20": 0.1824,
+    "recall@50": 0.3595,
+    "recall@100": 0.5398,
+    "mrr@10": 0.0369,
+    "mrr@20": 0.0416,
+    "mrr@50": 0.0472,
+    "mrr@100": 0.0498,
+    "ndcg@10": 0.054,
+    "ndcg@20": 0.0715,
+    "ndcg@50": 0.1066,
+    "ndcg@100": 0.1358,
+    "hit@10": 0.1124,
+    "hit@20": 0.1824,
+    "hit@50": 0.3595,
+    "hit@100": 0.5398,
+    "precision@10": 0.0112,
+    "precision@20": 0.0091,
+    "precision@50": 0.0072,
+    "precision@100": 0.0054
+  },
+  "test_result": {
+    "recall@10": 0.0976,
+    "recall@20": 0.175,
+    "recall@50": 0.3362,
+    "recall@100": 0.5249,
+    "mrr@10": 0.0333,
+    "mrr@20": 0.0385,
+    "mrr@50": 0.0435,
+    "mrr@100": 0.0461,
+    "ndcg@10": 0.0481,
+    "ndcg@20": 0.0675,
+    "ndcg@50": 0.0992,
+    "ndcg@100": 0.1297,
+    "hit@10": 0.0976,
+    "hit@20": 0.175,
+    "hit@50": 0.3362,
+    "hit@100": 0.5249,
+    "precision@10": 0.0098,
+    "precision@20": 0.0087,
+    "precision@50": 0.0067,
+    "precision@100": 0.0052
+  },
+  "train_seconds": 19.096698760986328,
+  "checkpoint": "FPMC-May-18-2026_14-42-24.pth",
+  "config_dict": {
+    "embedding_size": 64,
+    "learning_rate": 0.0044447541666908135
+  },
+  "completed_at": "2026-05-18 14:42:44"
+}
