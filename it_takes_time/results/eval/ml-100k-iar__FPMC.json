@@ -1,6 +1,6 @@
 {
   "model": "FPMC",
-  "dataset": "ml-100k",
+  "dataset": "ml-100k-iar",
   "best_params": {
     "embedding_size": 64,
     "learning_rate": 0.0044447541666908135

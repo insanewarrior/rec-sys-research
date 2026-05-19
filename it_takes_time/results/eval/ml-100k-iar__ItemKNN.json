@@ -1,6 +1,6 @@
 {
   "model": "ItemKNN",
-  "dataset": "ml-100k",
+  "dataset": "ml-100k-iar",
   "best_params": {
     "k": 250,
     "shrink": 0.026368084405807513

@@ -1,6 +1,6 @@
 {
   "model": "BERT4Rec",
-  "dataset": "ml-100k",
+  "dataset": "ml-100k-iar",
   "best_params": {
     "n_layers": 2,
     "n_heads": 2,

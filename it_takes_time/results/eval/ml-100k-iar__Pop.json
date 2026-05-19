@@ -1,6 +1,6 @@
 {
   "model": "Pop",
-  "dataset": "ml-100k",
+  "dataset": "ml-100k-iar",
   "best_params": {},
   "best_valid_score": 0.0302,
   "best_valid_result": {

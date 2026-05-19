@@ -1,6 +1,6 @@
 {
   "model": "BPR",
-  "dataset": "ml-100k",
+  "dataset": "ml-100k-iar",
   "best_params": {
     "embedding_size": 128,
     "learning_rate": 0.00474828165502519
