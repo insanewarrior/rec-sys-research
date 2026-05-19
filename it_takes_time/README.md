@@ -84,10 +84,29 @@ Knobs (env vars):
 
 | Var                   | Default | Effect                                  |
 |-----------------------|---------|------------------------------------------|
-| `N_TRIALS`            | 10      | Optuna trials per model                  |
+| `N_TRIALS`            | 25      | Optuna trials per model                  |
 | `HPO_EPOCHS`          | 10      | Epochs per HPO trial (short)             |
 | `FINAL_EPOCHS`        | 50      | Epochs for the final fit on best params  |
 | `EARLY_STOP_PATIENCE` | 5       | Early-stopping patience on val NDCG@10   |
+
+## Evaluation protocol
+
+Every model follows the same train / valid / test discipline:
+
+- **HPO trials** (`HPO_EPOCHS` epochs, `saved=False`) train on train, score on
+  valid; Optuna's objective is validation NDCG@10. Test data is never touched.
+- **Final fit** (`FINAL_EPOCHS` epochs, `saved=True`) uses the HPO-best params,
+  trains on train only, and evaluates on valid each epoch for
+  best-checkpoint selection and early stopping.
+- **Test metrics** come from a single pass on test using the
+  best-on-valid checkpoint (`load_best_model=True`). Valid_data is never
+  added to training — we do not refit on `train ∪ valid` because (a) it would
+  forfeit the early-stopping signal, (b) it matches the convention of the
+  sequential-recsys literature (SASRec, BERT4Rec, RecBole benchmarks), and
+  (c) the leave-one-out valid split is too small to materially improve fit.
+
+So the `best_valid_score` field in `results/eval/*.json` is the
+model-selection score; the `test_result` block is the reported number.
 
 ### One-time: re-run baselines after schema change
 
