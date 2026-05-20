@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import torch
 
-from models.variants.ia_sasrec import normalise_intensity
+from models.variants.ia_sasrec import MINMAX_FLOOR, normalise_intensity
 
 
 def _mask(seq):
@@ -24,8 +24,23 @@ def test_minmax_range():
     mask = _mask([[True, True, True, False]])
     out = normalise_intensity(w, "minmax", mask)
     real = out[0, :3]
-    assert torch.isclose(real.min(), torch.tensor(0.0), atol=1e-6)
+    # Lowest real item is floored at MINMAX_FLOOR (not 0) so it stays
+    # distinguishable from padding.
+    assert torch.isclose(real.min(), torch.tensor(MINMAX_FLOOR), atol=1e-6)
     assert torch.isclose(real.max(), torch.tensor(1.0), atol=1e-6)
+
+
+def test_minmax_floor_preserves_lowest_real_item():
+    """Regression guard: the least-intense real item must not collapse to 0."""
+    w = torch.tensor([[3.0, 1.0, 5.0, 0.0]])
+    mask = _mask([[True, True, True, False]])
+    out = normalise_intensity(w, "minmax", mask)
+    # Padding still zero.
+    assert out[0, 3].item() == 0.0
+    # All real items strictly positive.
+    assert (out[0, :3] > 0).all()
+    # Specifically, the minimum real value equals the floor.
+    assert torch.isclose(out[0, :3].min(), torch.tensor(MINMAX_FLOOR), atol=1e-6)
 
 
 def test_zscore_no_nan_on_constant():

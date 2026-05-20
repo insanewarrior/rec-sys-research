@@ -2,11 +2,18 @@
 
 Three variants inject the per-interaction intensity weight ``w_j`` (e.g. rating,
 hours played) into the self-attention mechanism of the base SASRec encoder
-(Kang & McAuley, 2018):
+(Kang & McAuley, 2018). All three share a learnable scalar ``lambda`` per
+transformer block (initialised to 1.0) that collapses the variant to vanilla
+SASRec at ``lambda = 0``:
 
-* ``IASASRecAdd``  — additive logit bias:    ``softmax(QK^T/sqrt(d) + lambda * w) V``
-* ``IASASRecMul``  — multiplicative scaling: ``softmax((QK^T/sqrt(d)) * w) V``
-* ``IASASRecVal``  — value modulation:       ``softmax(QK^T/sqrt(d)) (V * w)``
+* ``IASASRecAdd``  additive logit bias:
+      softmax(QK^T/sqrt(d) + lambda * w_k) V
+
+* ``IASASRecMul``  multiplicative logit scaling:
+      softmax((QK^T/sqrt(d)) * (1 + lambda * (w_k - 1))) V
+
+* ``IASASRecVal``  post-softmax key reweighting:
+      (softmax(QK^T/sqrt(d)) * (1 + lambda * (w_k - 1))) V
 
 The intensity vector reaches the model via RecBole's automatic sequence
 expansion: the ``intensity:float`` column in ``.inter`` becomes
@@ -22,6 +29,13 @@ import torch
 from torch import nn
 
 from recbole.model.sequential_recommender.sasrec import SASRec
+
+
+# Floor used by the "minmax" normalisation so the least-intense real item maps
+# to MINMAX_FLOOR (not 0). Without this, after `(w - wmin)/(wmax - wmin)` the
+# lowest real item is indistinguishable from padding, which silently throws
+# away one real interaction per sequence in Mul/Val variants.
+MINMAX_FLOOR = 0.1
 
 
 def normalise_intensity(w: torch.Tensor, mode: str, mask: torch.Tensor) -> torch.Tensor:
@@ -48,7 +62,7 @@ def normalise_intensity(w: torch.Tensor, mode: str, mask: torch.Tensor) -> torch
         wmin = w.masked_fill(~mask, float("inf")).amin(dim=1, keepdim=True)
         wmax = w.masked_fill(~mask, float("-inf")).amax(dim=1, keepdim=True)
         denom = (wmax - wmin).clamp(min=1e-8)
-        w = (w - wmin) / denom
+        w = MINMAX_FLOOR + (1.0 - MINMAX_FLOOR) * (w - wmin) / denom
     elif mode == "zscore":
         m = mask.float()
         cnt = m.sum(dim=1, keepdim=True).clamp(min=1.0)
@@ -101,11 +115,17 @@ class IAMultiHeadAttention(nn.Module):
         self.LayerNorm = nn.LayerNorm(hidden_size, eps=layer_norm_eps)
         self.out_dropout = nn.Dropout(hidden_dropout_prob)
 
-        if intensity_mode == "add":
-            # Learnable scalar lambda controlling additive bias strength.
-            self.intensity_lambda = nn.Parameter(torch.ones(1))
-        else:
-            self.register_parameter("intensity_lambda", None)
+        # Every intensity mode is gated by a learnable scalar λ, initialised
+        # to 1.0 so behaviour at init matches the original hard-wired variant.
+        # At λ=0 every variant collapses to vanilla SASRec, giving the model
+        # an escape hatch when intensity is uninformative.
+        self.intensity_lambda = nn.Parameter(torch.ones(1))
+
+        # Diagnostic cache for the last forward's post-softmax attention probs.
+        # Off by default to avoid holding tensors during normal training; tests
+        # flip `capture_probs = True` on the module to enable.
+        self.capture_probs = False
+        self.last_probs: torch.Tensor | None = None
 
     def transpose_for_scores(self, x: torch.Tensor) -> torch.Tensor:
         new_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
@@ -139,19 +159,28 @@ class IAMultiHeadAttention(nn.Module):
             w_k = intensity[:, None, None, :]
             scores = scores + self.intensity_lambda * w_k
         elif intensity is not None and self.intensity_mode == "mul":
+            # λ=0 → vanilla SASRec; λ=1 → scores * w_k (original Mul).
             w_k = intensity[:, None, None, :]
-            scores = scores * w_k
+            scores = scores * (1.0 + self.intensity_lambda * (w_k - 1.0))
 
         # Padding/causal mask is applied AFTER intensity, so padded keys still
         # collapse to zero probability regardless of the variant.
         scores = scores + attention_mask
         probs = self.attn_dropout(self.softmax(scores))
 
-        ctx = torch.matmul(probs, v)
         if intensity is not None and self.intensity_mode == "val":
-            # w_v broadcast across heads (dim 1) and embedding dim (dim 3).
-            w_v = intensity[:, None, :, None]
-            ctx = ctx * w_v
+            # Soft attention reweighting by key-position intensity, applied to
+            # the post-softmax probs *before* the matmul with V. λ=0 → vanilla;
+            # λ=1 → each key's attention probability scales by its intensity.
+            # No renormalisation — the output dense layer absorbs scale, same
+            # as how masked/sparse attention is typically handled.
+            w_k = intensity[:, None, None, :]
+            probs = probs * (1.0 + self.intensity_lambda * (w_k - 1.0))
+
+        if self.capture_probs:
+            self.last_probs = probs.detach()
+
+        ctx = torch.matmul(probs, v)
 
         ctx = ctx.permute(0, 2, 1, 3).contiguous()
         ctx = ctx.view(ctx.size(0), ctx.size(1), self.all_head_size)
@@ -319,6 +348,19 @@ class IASASRecBase(SASRec):
         seq_output = self.forward(item_seq, item_seq_len, intensity=intensity)
         test_item_emb = self.item_embedding(test_item)
         return (seq_output * test_item_emb).sum(dim=1)
+
+    def get_intensity_params(self) -> dict[str, float]:
+        """Return the learned per-layer intensity λ values.
+
+        Used by the runner to record λ alongside metrics, so the benchmark
+        notebook can plot how strongly the model leans on intensity per dataset.
+        """
+        return {
+            f"layer_{i}_lambda": float(
+                blk.multi_head_attention.intensity_lambda.detach().cpu()
+            )
+            for i, blk in enumerate(self.trm_encoder.layer)
+        }
 
     def full_sort_predict(self, interaction):
         item_seq = interaction[self.ITEM_SEQ]

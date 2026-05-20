@@ -96,16 +96,28 @@ def test_loss_and_backward(cls):
     assert torch.isfinite(model.item_embedding.weight.grad).all()
 
 
-def test_add_variant_lambda_receives_gradient():
+@pytest.mark.parametrize("cls", [IASASRecAdd, IASASRecMul, IASASRecVal])
+def test_intensity_lambda_receives_gradient(cls):
+    """Every variant's λ must be a learnable parameter with non-None gradient."""
     n_items = 50
-    model = IASASRecAdd(_make_config(), _StubDataset(n_items))
+    model = cls(_make_config(), _StubDataset(n_items))
     batch = _make_batch(B=3, T=8, n_items=n_items)
     loss = model.calculate_loss(batch)
     loss.backward()
-    # First-layer lambda should pick up a non-None gradient.
     lam = model.trm_encoder.layer[0].multi_head_attention.intensity_lambda
+    assert lam is not None
     assert lam.grad is not None
     assert torch.isfinite(lam.grad).all()
+
+
+def test_get_intensity_params_returns_per_layer_lambdas():
+    """The runner relies on this method to log λ alongside metrics."""
+    n_items = 50
+    model = IASASRecAdd(_make_config(n_layers=3), _StubDataset(n_items))
+    params = model.get_intensity_params()
+    assert set(params.keys()) == {"layer_0_lambda", "layer_1_lambda", "layer_2_lambda"}
+    for v in params.values():
+        assert isinstance(v, float)
 
 
 def test_missing_intensity_field_raises_by_default():

@@ -136,6 +136,12 @@ def train_one(
     train_time = time.time() - t0
 
     test_result = trainer.evaluate(test_data, load_best_model=saved, show_progress=False)
+    # Surface per-layer λ values for IA-SASRec variants. `trainer.evaluate`
+    # above reloads the best checkpoint when saved=True, so `model` is in the
+    # state we actually care about.
+    intensity_params = (
+        model.get_intensity_params() if hasattr(model, "get_intensity_params") else None
+    )
     return {
         "best_valid_score": float(best_valid_score),
         "best_valid_result": {k: float(v) for k, v in dict(best_valid_result).items()},
@@ -143,6 +149,7 @@ def train_one(
         "train_seconds": train_time,
         "checkpoint": Path(trainer.saved_model_file).name if saved else None,
         "config_dict": {k: overrides.get(k) for k in overrides},
+        "intensity_params": intensity_params,
     }
 
 

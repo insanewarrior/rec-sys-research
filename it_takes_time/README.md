@@ -7,7 +7,7 @@ baselines (SASRec, BERT4Rec, GRU4Rec, NARM, FPMC, Pop, BPR, ItemKNN) against
 three new **IA-SASRec** (Intensity-Aware SASRec) variants that inject
 per-interaction strength (rating) directly into the self-attention
 mechanism. One reproducible methodology, **Optuna** HPO, on-disk
-resumability, 27 pytest tests.
+resumability, full pytest coverage.
 
 ## Why
 
@@ -30,11 +30,26 @@ This project's goal is a single notebook where:
 dwell time) and threads it into the attention computation through one of
 three drop-in modifications:
 
-| Variant            | Mechanism                                                   | Extra params |
-|--------------------|-------------------------------------------------------------|--------------|
-| `IA-SASRec-Add`    | additive logit bias `softmax(QKᵀ/√d + λ·M_W) V`             | 1 scalar `λ` per layer (learnable) |
-| `IA-SASRec-Mul`    | multiplicative scaling `softmax((QKᵀ/√d) ⊙ M_W) V`          | none |
-| `IA-SASRec-Val`    | value modulation `softmax(QKᵀ/√d) (V ⊙ w)`                  | none |
+| Variant            | Mechanism                                                                    | Extra params |
+|--------------------|------------------------------------------------------------------------------|--------------|
+| `IA-SASRec-Add`    | additive logit bias `softmax(QKᵀ/√d + λ·w_k) V`                              | 1 scalar `λ` per layer (learnable) |
+| `IA-SASRec-Mul`    | multiplicative scaling `softmax((QKᵀ/√d) · (1 + λ·(w_k − 1))) V`             | 1 scalar `λ` per layer (learnable) |
+| `IA-SASRec-Val`    | post-softmax key reweighting `(softmax(QKᵀ/√d) · (1 + λ·(w_k − 1))) V`       | 1 scalar `λ` per layer (learnable) |
+
+All three variants are now gated by a learnable strength `λ` (initialised to
+1.0). At `λ = 0` every variant collapses to vanilla SASRec, giving the model
+an explicit escape hatch when intensity is uninformative; the learned `λ` per
+layer is recorded alongside metrics in `results/eval/*.json`.
+
+`Val`'s new semantics (post-softmax key reweighting) is a **breaking change**
+from earlier versions, where Val multiplied the post-attention context by
+query-position intensity — that formulation collapsed to a per-user scalar at
+prediction time and could not reorder candidates. See [ia_sasrec.md](ia_sasrec.md)
+for the design rationale.
+
+The `minmax` intensity normalisation has a `MINMAX_FLOOR = 0.1`: the
+least-intense real item maps to `0.1` rather than `0.0`, so it stays
+distinguishable from padding. `log1p_minmax` and `zscore` are unchanged.
 
 Full math, motivation, and paper outline: **[ia_sasrec.md](ia_sasrec.md)**.
 
@@ -127,12 +142,15 @@ variants train fresh.
 pytest -q
 ```
 
-27 tests covering: intensity normalisation modes, attention math for each
-variant (`Add` at `λ=0` matches vanilla bit-for-bit; `Mul` zero-intensity
-collapses to uniform; `Val` leaves the probability distribution untouched),
-padding-mask correctness across variants, full forward+backward smoke,
-registry wiring, two RecBole gotchas (class-object vs. name in `Config`;
-inlined SASRec yaml defaults), and data-pipeline format checks.
+Tests cover: intensity normalisation modes (including the `MINMAX_FLOOR`
+guard), attention math for each variant (`Add`/`Mul`/`Val` at `λ = 0` match
+vanilla bit-for-bit; `Mul` at `λ = 1` with zero intensity collapses to
+uniform; `Val` post-softmax key reweighting actually shifts the attention
+distribution), padding-mask correctness across variants, full
+forward+backward smoke with `λ` gradients for all three variants,
+`get_intensity_params()` shape, registry wiring, two RecBole gotchas
+(class-object vs. name in `Config`; inlined SASRec yaml defaults), and
+data-pipeline format checks.
 
 ## Resumability
 

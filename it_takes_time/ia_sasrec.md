@@ -91,58 +91,91 @@ in the same test module.
 ### 3.2 `IA-SASRec-Mul` — multiplicative attention scaling (pre-softmax)
 
 **Idea.** Instead of adding a bias, **scale** the semantic similarity by
-the intensity of the key. Two items must be both relevant *and* engaged
-with to attract attention.
+the intensity of the key, with a learnable strength so the model can decide
+how aggressively to do so.
 
-$$ \text{Attention}_{mul}(Q, K, V) = \text{softmax}\left(\left(\frac{QK^T}{\sqrt{d}}\right) \odot M_W + M\right) V \tag{3} $$
+$$ \text{Attention}_{mul}(Q, K, V) = \text{softmax}\left(\left(\frac{QK^T}{\sqrt{d}}\right) \odot \left(1 + \lambda_{mul} (M_W - 1)\right) + M\right) V \tag{3} $$
 
-$\odot$ is element-wise multiplication. Note the mask $M$ is still added
-*after* the multiplication so padded keys remain at $-\infty$.
+$\odot$ is element-wise multiplication. The mask $M$ is still added
+*after* the scaling so padded keys remain at $-\infty$.
 
-**Behaviour.** Acts as a strict **gatekeeper**: if the dot product
-$QK^T / \sqrt{d}$ says "this key looks relevant" but $w_k \approx 0$ (an
-accidental 1-second click), the multiplication crushes the score to $\sim 0$
-before the softmax sees it. The opposite is also true — a high-intensity
-key that is semantically irrelevant (small or negative dot product) gets
-its score amplified in magnitude, not necessarily in the helpful direction.
+$\lambda_{mul} \in \mathbb{R}$ is a **learnable scalar** (initialised to
+$1.0$, one per layer). The $(w_k - 1)$ parameterisation makes $\lambda$
+interpolate between two endpoints: at $\lambda_{mul} = 0$ the multiplier is
+$1$ and the variant collapses to vanilla SASRec; at $\lambda_{mul} = 1$ the
+multiplier is exactly $w_k$, recovering the original hard-gatekeeper
+formulation. This gives the model an escape hatch when intensity is
+uninformative — without it, a noisy intensity signal cannot be turned off.
 
-**Edge cases.** With all-zero intensity over visible keys, all attention
-logits become zero and the softmax outputs a uniform distribution over
-those keys — verified in `test_mul_zero_intensity_collapses_logits`.
+**Behaviour.** With normalised $w \in [0, 1]$, $\lambda_{mul} = 1$ shrinks
+logits at low-intensity keys toward zero — but this *flattens* their
+post-softmax probability toward uniform, not toward zero. For aggressive
+suppression, $\lambda_{mul}$ would need to grow large.
 
-### 3.3 `IA-SASRec-Val` — value modulation (post-softmax)
+**Edge cases.** At $\lambda_{mul} = 0$, the variant equals vanilla SASRec
+attention — verified in `test_mul_lambda_zero_matches_vanilla`. At
+$\lambda_{mul} = 1$ with all-zero intensity over visible keys, all attention
+logits become zero and the softmax outputs a uniform distribution —
+verified in `test_mul_lambda_one_collapses_zero_intensity`.
 
-**Idea.** Leave the attention probability distribution **completely alone**
-and only amplify the actual value vectors that get aggregated.
+### 3.3 `IA-SASRec-Val` — post-softmax key reweighting
 
-$$ \text{Attention}_{val}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d}} + M\right) (V \odot \mathbf{w}) \tag{4} $$
+**Idea.** Leave the attention probabilities to be computed by the standard
+softmax, then **reweight each key's contribution by its intensity** before
+aggregating values. Functionally this is "soft attention reweighting":
+intensity acts as a per-key gain applied to the attention distribution.
 
-$\mathbf{w}$ is broadcast across the embedding dimension of $V$: each
-value row $V_k$ is multiplied by the scalar $w_k$.
+$$ \text{Attention}_{val}(Q, K, V) = \left( \text{softmax}\left(\frac{QK^T}{\sqrt{d}} + M\right) \odot \left(1 + \lambda_{val} (M_W - 1)\right) \right) V \tag{4} $$
 
-**Behaviour.** The same historical pattern is learned, but when the model
-aggregates the sequence the representations of highly-interacted items
-contribute with larger magnitude than weakly-interacted items. This is the
-softest of the three modifications: it never changes *which* items the
-model attends to, only the **magnitude of their contribution**.
+$\lambda_{val}$ is a learnable scalar per layer (initialised to $1.0$),
+analogous to $\lambda_{mul}$. We deliberately do **not** renormalise the
+reweighted distribution — the dense output projection absorbs scale, which
+is the standard treatment in masked / sparse attention layers.
 
-**Edge cases.** The attention probability distribution is identical to
-vanilla SASRec for any $\mathbf{w}$ — verified bit-for-bit in
-`test_val_attention_distribution_unchanged`. Padded positions are zeroed
-in $\mathbf{w}$ before this step, so they make zero contribution to the
-output even though the softmax may assign them small probability mass.
+**Behaviour.** Unlike Mul (which acts on raw logits and can be diluted by
+the softmax normalisation), Val acts directly on the attention probabilities
+the model uses to mix values. This makes it the most direct of the three
+mechanisms for *suppressing the contribution of low-intensity items in the
+final user vector*.
+
+**Why this differs from the original Val.** A previous formulation of Val
+multiplied the **post-attention context** by *query-position* intensity:
+
+$$ \text{ctx} \leftarrow \text{ctx} \odot \mathbf{w}_{\text{query}} $$
+
+This was broken for ranking. At prediction time only the last query
+position is read out, so the entire user vector gets multiplied by a single
+scalar — every candidate item's score is rescaled by the same constant, and
+the ordering is identical to vanilla SASRec. The new formulation reweights
+**key-position** intensity inside the attention sum, which actually
+changes which items dominate the final representation. The change is
+**breaking**: prior `IA-SASRec-Val` results are not directly comparable.
+
+**Edge cases.** At $\lambda_{val} = 0$ the variant equals vanilla SASRec —
+verified in `test_val_lambda_zero_matches_vanilla`. With non-trivial
+intensity, the attention distribution actually used in the matmul differs
+from the un-modified softmax — verified in
+`test_val_attention_distribution_changes_with_intensity`. Padded positions
+have softmax probability zero (mask is $-\infty$ before softmax), so they
+contribute zero to the output regardless of the reweighting.
 
 ### 3.4 Summary table
 
-| Variant | Pre-softmax score | Post-softmax aggregation | What it controls |
-|---------|------------------|--------------------------|------------------|
-| `Add`   | $QK^T/\sqrt{d} + \lambda M_W$ | $\text{softmax}(\cdot)\, V$       | logits (learnable strength) |
-| `Mul`   | $(QK^T/\sqrt{d}) \odot M_W$   | $\text{softmax}(\cdot)\, V$       | logits (hard gatekeeper)    |
-| `Val`   | $QK^T/\sqrt{d}$               | $\text{softmax}(\cdot)\, (V \odot \mathbf{w})$ | aggregated magnitude only |
+| Variant | Where intensity enters | $\lambda$ at $0$ | $\lambda$ at $1$ |
+|---------|------------------------|------------------|------------------|
+| `Add`   | additive logit bias: $QK^T/\sqrt{d} + \lambda M_W$              | vanilla SASRec | logits offset by $w$ |
+| `Mul`   | multiplicative logit scale: $(QK^T/\sqrt{d}) \odot (1 + \lambda (M_W - 1))$ | vanilla SASRec | original $(QK^T/\sqrt{d}) \odot M_W$ |
+| `Val`   | post-softmax key reweighting: $(\text{softmax}(\cdot) \odot (1 + \lambda (M_W - 1)))\, V$ | vanilla SASRec | $\text{softmax}(\cdot)$ scaled by $w$ per key |
 
-These are the three obvious "first-derivative" hooks in the attention
-expression — one for each algebraic position where $\mathbf{w}$ can be
-introduced without changing the rest of the architecture.
+All three variants share a single design discipline: **a learnable
+$\lambda$ that collapses the variant to vanilla SASRec at $\lambda = 0$**.
+This was a deliberate response to a prior negative result, in which the
+non-learnable Mul and Val variants underperformed SASRec on every dataset
+in the benchmark. Adding learnable strength turns the formulation into a
+**proper ablation** of intensity injection, and the learned $\lambda$ per
+layer per dataset becomes an interpretable signal about how strongly the
+model leans on intensity (logged into `results/eval/*.json` via
+`IASASRecBase.get_intensity_params()`).
 
 ---
 
@@ -166,13 +199,25 @@ saved `.inter` file keeps the human-readable original:
 | Mode | Operation on $w \in \mathbb{R}^T$ with mask $m \in \{0, 1\}^T$ |
 |------|----------------------------------------------------------------|
 | `log1p_minmax` (default) | $w \leftarrow \log(1 + \max(w, 0))$, then $w \leftarrow w \,/\, \max_k(w_k \cdot m_k)$ |
-| `minmax` | $w \leftarrow (w - \min) / (\max - \min)$ over masked entries |
+| `minmax` | $w \leftarrow f + (1 - f) \cdot (w - \min) / (\max - \min)$ over masked entries, with floor $f = 0.1$ |
 | `zscore` | $w \leftarrow (w - \mu) / \sigma$ over masked entries |
 | `none`   | identity (sanity-check ablation) |
 
 After every mode, padding positions are forcibly zeroed regardless of the
 math above. Implementation: `normalise_intensity` in
 [src/models/variants/ia_sasrec.py](src/models/variants/ia_sasrec.py).
+
+**Minmax floor.** Without the floor $f$, the least-intense real item maps
+to exactly $0$ after $(w - w_{\min}) / (w_{\max} - w_{\min})$ — making it
+indistinguishable from padding. In `Mul` this zeros the corresponding
+attention logit; in `Val` it zeros the key's contribution to the output.
+Either way, one real interaction per sequence is silently thrown away. The
+constant `MINMAX_FLOOR = 0.1` (module-level in
+[src/models/variants/ia_sasrec.py](src/models/variants/ia_sasrec.py)) maps
+real items into $[0.1, 1.0]$, keeping the lowest-intensity item distinct
+from padding while preserving the relative ordering of the rest.
+`log1p_minmax` and `zscore` are unchanged — `log1p_minmax` does not
+subtract a per-sequence minimum and so does not suffer the same collapse.
 
 `intensity_norm` is part of the Optuna search space — it doubles as a clean
 ablation axis for the paper.
@@ -190,7 +235,7 @@ ablation axis for the paper.
 | [src/data.py](src/data.py) | Writes the `intensity:float` column into `.inter`; HTTP-zip, gzip-json, and Kaggle downloaders |
 | [src/config.py](src/config.py) | Adds `INTENSITY_FIELD` to common config; declares ML-1M, ML-100K, Amazon Digital Music, Amazon Office Products dataset specs |
 | [src/runner.py](src/runner.py) | Passes the class object (not name) to RecBole's `Config` for custom variants; `invalidate_cache(dataset, model=None)` helper |
-| [tests/](tests/) | 27 pytest unit / regression tests |
+| [tests/](tests/) | pytest unit + regression tests covering attention math, normalisation modes, λ gradients, registry, runner, and data pipeline |
 
 ### 5.2 Data format
 
@@ -372,11 +417,16 @@ pytest -q
    favour noisy long-tail signals if added later via a hours-played-style
    dataset; `Val` is a safe default).
 6. **Discussion.** Per-dataset winner analysis; when each variant helps and
-   why; cost analysis (extra parameters: 1 scalar `λ` per layer for `Add`,
-   zero for `Mul`/`Val`).
+   why; learned-$\lambda$ analysis (does the model shrink $\lambda$ toward
+   $0$ on datasets where intensity is uninformative, and grow it elsewhere?);
+   cost analysis (extra parameters: one scalar $\lambda$ per layer per
+   variant — `Add`, `Mul`, `Val` all add `n_layers` scalars).
 7. **Conclusion.** IA-SASRec is a drop-in upgrade for any SASRec deployment
-   that already logs interaction strength — no new parameters required for
-   two of three variants, and a single learnable scalar for the third.
+   that already logs interaction strength — at the cost of one learnable
+   scalar per layer per variant. The unified $(1 + \lambda(w - 1))$
+   parameterisation lets the model gracefully fall back to vanilla SASRec on
+   datasets where intensity is noise, while still capturing the signal when
+   it's present.
 
 ---
 
@@ -390,9 +440,12 @@ pytest -q
   per-event timestamps, so they can't drive a sequential model honestly.
   A future swap to McAuley's Steam Reviews (which has `unix_timestamp`
   and hours per review) could revisit hours-played-as-intensity properly.
-- **`λ` per layer.** Each of `n_layers` IA-SASRec-Add transformer blocks has
-  its own learnable `λ`. If you want a single global `λ`, share the parameter
-  across layers in `IATransformerEncoder.__init__`.
+- **`λ` per layer.** Each of `n_layers` IA-SASRec transformer blocks (for
+  all three variants) has its own learnable `λ`, exposed at training end via
+  `IASASRecBase.get_intensity_params()` and persisted in
+  `results/eval/<dataset>__<model>.json` under the `intensity_params` key.
+  If you want a single global `λ`, share the parameter across layers in
+  `IATransformerEncoder.__init__`.
 - **Generalisation.** The "intensity" framework is dataset-agnostic — anything
   you can express as a per-interaction `float` works (review helpfulness
   votes, listening counts, scroll depth, purchase value, etc.).
