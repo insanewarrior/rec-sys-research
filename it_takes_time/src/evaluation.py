@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -77,6 +77,133 @@ def aggregate_results(
         sort_col = "ndcg@10" if "ndcg@10" in df.columns else df.columns[-1]
         df = df.sort_values(sort_col, ascending=False).reset_index(drop=True)
     return df
+
+
+def paired_significance(
+    dataset_name: str,
+    baseline_model: str,
+    challenger_models: Iterable[str],
+    metrics: Iterable[str] | None = None,
+) -> pd.DataFrame:
+    """Paired significance tests across seeds: challenger vs baseline, per metric.
+
+    For each (challenger, metric) pair, pairs the per-seed test_result values of
+    the challenger with those of the baseline by ``seed`` (so the same data
+    split / RNG draw is on both sides of the test), then runs a paired t-test
+    and a Wilcoxon signed-rank test.
+
+    Parameters:
+        dataset_name: Dataset key (e.g. ``"amazon-digital-music"``).
+        baseline_model: Model name to test *against* (typically ``"SASRec"``).
+        challenger_models: Iterable of model names to test. Each is compared
+            independently against the baseline.
+        metrics: Metrics to test (keys present in ``test_result``). When
+            ``None``, every metric present in the baseline record is tested.
+
+    Returns:
+        Long-form DataFrame with columns:
+        ``model``, ``metric``, ``baseline_mean``, ``challenger_mean``,
+        ``mean_diff`` (challenger − baseline), ``rel_diff`` (relative %),
+        ``n``, ``t_pvalue``, ``wilcoxon_pvalue``, ``per_seed_diffs``. Rows are
+        ordered by ``model`` then ``metric``.
+    """
+    # Lazy imports — scipy is only needed when this function is called.
+    from runner import load_result
+    from scipy import stats as sps
+
+    base = load_result(dataset_name, baseline_model)
+    base_seeds = sorted(base["per_seed"], key=lambda r: r["seed"])
+    base_map = {r["seed"]: r["test_result"] for r in base_seeds}
+
+    if metrics is None:
+        metrics = sorted((base_seeds[0].get("test_result") or {}).keys())
+
+    rows: list[dict[str, Any]] = []
+    for model in challenger_models:
+        if model == baseline_model:
+            continue
+        try:
+            ch = load_result(dataset_name, model)
+        except FileNotFoundError:
+            continue
+        ch_seeds = sorted(ch["per_seed"], key=lambda r: r["seed"])
+        for metric in metrics:
+            paired = []
+            for r in ch_seeds:
+                s = r.get("seed")
+                if s is None or s not in base_map:
+                    continue
+                b_val = base_map[s].get(metric)
+                c_val = (r.get("test_result") or {}).get(metric)
+                if b_val is None or c_val is None:
+                    continue
+                paired.append((float(b_val), float(c_val)))
+            if len(paired) < 2:
+                continue
+            b_arr = [p[0] for p in paired]
+            c_arr = [p[1] for p in paired]
+            diffs = [c - b for b, c in paired]
+            mean_diff = sum(diffs) / len(diffs)
+            b_mean = sum(b_arr) / len(b_arr)
+            c_mean = sum(c_arr) / len(c_arr)
+            t_p = float(sps.ttest_rel(c_arr, b_arr).pvalue)
+            try:
+                w_p = float(sps.wilcoxon(c_arr, b_arr, zero_method="zsplit").pvalue)
+            except ValueError:
+                # All-zero diffs — challenger and baseline identical.
+                w_p = 1.0
+            rel = (mean_diff / b_mean * 100.0) if b_mean else 0.0
+            rows.append({
+                "model": model,
+                "metric": metric,
+                "baseline_mean": b_mean,
+                "challenger_mean": c_mean,
+                "mean_diff": mean_diff,
+                "rel_diff_%": rel,
+                "n": len(paired),
+                "t_pvalue": t_p,
+                "wilcoxon_pvalue": w_p,
+                "per_seed_diffs": [round(d, 5) for d in diffs],
+            })
+    return pd.DataFrame(rows)
+
+
+def significance_summary(
+    dataset_name: str,
+    baseline_model: str,
+    challenger_models: Iterable[str],
+    metrics: Iterable[str] | None = None,
+    alpha: float = 0.05,
+) -> pd.DataFrame:
+    """Compact wide-form significance summary: one row per (model, metric).
+
+    Marks each cell with the sign of the diff and a star when the paired
+    t-test p-value is below *alpha*. Useful for at-a-glance reading.
+
+    Parameters:
+        dataset_name: Dataset key.
+        baseline_model: Model name to test against.
+        challenger_models: Models to compare.
+        metrics: Metrics to test. When ``None``, uses the default set.
+        alpha: Significance threshold (two-tailed) for marking ``*``.
+
+    Returns:
+        DataFrame indexed by model with one column per metric. Each cell is a
+        string like ``"+0.0012*"`` (sig +), ``"-0.0023*"`` (sig −), or
+        ``"+0.0009"`` (n.s.).
+    """
+    df = paired_significance(dataset_name, baseline_model, challenger_models, metrics=metrics)
+    if df.empty:
+        return df
+
+    def _format(row: pd.Series) -> str:
+        sign = "+" if row["mean_diff"] >= 0 else ""
+        star = "*" if row["t_pvalue"] < alpha else " "
+        return f"{sign}{row['mean_diff']:+.4f}{star}"
+
+    df["cell"] = df.apply(_format, axis=1)
+    wide = df.pivot(index="model", columns="metric", values="cell")
+    return wide
 
 
 def top_k_recommend(
