@@ -1,0 +1,60 @@
+{
+  "model": "BPR",
+  "dataset": "amazon-digital-music",
+  "best_params": {
+    "embedding_size": 128,
+    "learning_rate": 0.002930712698545935
+  },
+  "best_valid_score": 0.0936,
+  "best_valid_result": {
+    "recall@10": 0.1673,
+    "recall@20": 0.2359,
+    "recall@50": 0.3566,
+    "recall@100": 0.4718,
+    "mrr@10": 0.0712,
+    "mrr@20": 0.0758,
+    "mrr@50": 0.0797,
+    "mrr@100": 0.0813,
+    "ndcg@10": 0.0936,
+    "ndcg@20": 0.1108,
+    "ndcg@50": 0.1347,
+    "ndcg@100": 0.1534,
+    "hit@10": 0.1673,
+    "hit@20": 0.2359,
+    "hit@50": 0.3566,
+    "hit@100": 0.4718,
+    "precision@10": 0.0167,
+    "precision@20": 0.0118,
+    "precision@50": 0.0071,
+    "precision@100": 0.0047
+  },
+  "test_result": {
+    "recall@10": 0.1229,
+    "recall@20": 0.1821,
+    "recall@50": 0.2945,
+    "recall@100": 0.405,
+    "mrr@10": 0.0495,
+    "mrr@20": 0.0535,
+    "mrr@50": 0.0571,
+    "mrr@100": 0.0586,
+    "ndcg@10": 0.0667,
+    "ndcg@20": 0.0815,
+    "ndcg@50": 0.1037,
+    "ndcg@100": 0.1216,
+    "hit@10": 0.1229,
+    "hit@20": 0.1821,
+    "hit@50": 0.2945,
+    "hit@100": 0.405,
+    "precision@10": 0.0123,
+    "precision@20": 0.0091,
+    "precision@50": 0.0059,
+    "precision@100": 0.004
+  },
+  "train_seconds": 248.2764527797699,
+  "checkpoint": "BPR-May-20-2026_13-11-25.pth",
+  "config_dict": {
+    "embedding_size": 128,
+    "learning_rate": 0.002930712698545935
+  },
+  "completed_at": "2026-05-20 13:15:38"
+}
