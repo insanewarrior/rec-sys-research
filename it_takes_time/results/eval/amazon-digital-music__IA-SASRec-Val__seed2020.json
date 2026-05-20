@@ -56,8 +56,8 @@
     "precision@50": 0.0075,
     "precision@100": 0.0048
   },
-  "train_seconds": 110.61604261398315,
-  "checkpoint": "IASASRecVal-May-20-2026_16-48-57.pth",
+  "train_seconds": 111.74964356422424,
+  "checkpoint": "IASASRecVal-May-20-2026_21-24-53.pth",
   "config_dict": {
     "n_layers": 3,
     "n_heads": 1,
@@ -66,12 +66,14 @@
     "hidden_dropout_prob": 0.2594991171826233,
     "attn_dropout_prob": 0.3571446645925309,
     "learning_rate": 0.001354022458954806,
-    "intensity_norm": "log1p_minmax"
+    "intensity_norm": "log1p_minmax",
+    "seed": 2020
   },
   "intensity_params": {
     "layer_0_lambda": 0.679602324962616,
     "layer_1_lambda": 0.6664446592330933,
     "layer_2_lambda": 0.6841926574707031
   },
-  "completed_at": "2026-05-20 16:50:48"
+  "seed": 2020,
+  "completed_at": "2026-05-20 21:26:45"
 }

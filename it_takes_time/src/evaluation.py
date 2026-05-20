@@ -13,31 +13,64 @@ import torch
 from config import EVAL_DIR
 
 
-def aggregate_results(dataset_name: str | None = None) -> pd.DataFrame:
-    """Load all saved evaluation JSONs and return them as a sorted DataFrame.
+def aggregate_results(
+    dataset_name: str | None = None,
+    include_std: bool = True,
+) -> pd.DataFrame:
+    """Load every saved (dataset, model) result and return a sorted DataFrame.
+
+    Per-seed JSONs are grouped by (dataset, model) and aggregated via
+    :func:`runner.aggregate_seed_records` so each model contributes a single
+    row regardless of seed count.
 
     Parameters:
         dataset_name: If provided, only rows whose ``"dataset"`` field matches
             this value are included. Pass ``None`` to aggregate across all datasets.
+        include_std: When ``True`` (default), add ``<metric>_std`` columns and
+            an ``n_seeds`` column derived from the per-seed aggregation.
 
     Returns:
-        DataFrame with one row per (dataset, model) result, sorted descending by
+        DataFrame with one row per (dataset, model), sorted descending by
         ``ndcg@10`` (or the last metric column if that key is absent). Empty
         DataFrame if no JSON files exist under ``EVAL_DIR``.
     """
-    rows = []
+    # Lazy import to avoid circular dependency at module load time.
+    from runner import load_result
+
+    pairs: set[tuple[str, str]] = set()
     for p in sorted(EVAL_DIR.glob("*.json")):
-        rec = json.loads(p.read_text())
-        if dataset_name and rec.get("dataset") != dataset_name:
+        # Filenames are either "<ds>__<model>.json" (legacy) or
+        # "<ds>__<model>__seed<N>.json" (per-seed). Strip the optional seed
+        # suffix to recover the (dataset, model) pair.
+        stem = p.stem
+        head, _, tail = stem.rpartition("__")
+        if head and tail.startswith("seed"):
+            stem = head
+        ds, _, model = stem.partition("__")
+        if not ds or not model:
+            continue
+        if dataset_name and ds != dataset_name:
+            continue
+        pairs.add((ds, model))
+
+    rows = []
+    for ds, model in sorted(pairs):
+        try:
+            rec = load_result(ds, model)
+        except FileNotFoundError:
             continue
         row = {
             "dataset": rec["dataset"],
             "model": rec["model"],
             "train_seconds": rec.get("train_seconds"),
             "best_valid_score": rec.get("best_valid_score"),
+            "n_seeds": rec.get("n_seeds", 1),
         }
         for k, v in (rec.get("test_result") or {}).items():
             row[k] = v
+        if include_std:
+            for k, v in (rec.get("test_result_std") or {}).items():
+                row[f"{k}_std"] = v
         rows.append(row)
     df = pd.DataFrame(rows)
     if not df.empty:

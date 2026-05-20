@@ -110,9 +110,11 @@ Every model follows the same train / valid / test discipline:
 
 - **HPO trials** (`HPO_EPOCHS` epochs, `saved=False`) train on train, score on
   valid; Optuna's objective is validation NDCG@10. Test data is never touched.
+  HPO runs once per (dataset, model) at a single seed.
 - **Final fit** (`FINAL_EPOCHS` epochs, `saved=True`) uses the HPO-best params,
   trains on train only, and evaluates on valid each epoch for
-  best-checkpoint selection and early stopping.
+  best-checkpoint selection and early stopping. Repeated across N seeds
+  per (dataset, model) — see *Multi-seed final fit* below.
 - **Test metrics** come from a single pass on test using the
   best-on-valid checkpoint (`load_best_model=True`). Valid_data is never
   added to training — we do not refit on `train ∪ valid` because (a) it would
@@ -154,15 +156,52 @@ data-pipeline format checks.
 
 ## Resumability
 
-- `results/eval/<dataset>__<model>.json` — final metrics. Presence of this
-  file means "skip this model on next notebook run".
+- `results/eval/<dataset>__<model>__seed<N>.json` — per-seed final metrics.
+  Presence of all configured seed files for a (dataset, model) means "skip
+  this model on next notebook run".
+  - Legacy single-file results `<dataset>__<model>.json` from before the
+    multi-seed schema are still read transparently and treated as the
+    `LEGACY_SEED = 2020` result.
 - `results/hpo/<dataset>__<model>.db` — Optuna SQLite study. Re-running an
-  HPO call continues from the last trial.
+  HPO call continues from the last trial. HPO is single-seed by design.
 - `results/checkpoints/` — RecBole-saved best-model `.pth` files.
 
 To re-run a single model from scratch:
-`from runner import invalidate_cache; invalidate_cache("ml-100k", "SASRec")`,
-optionally also delete its HPO DB, then re-run the benchmark cell.
+`from runner import invalidate_cache; invalidate_cache("ml-100k-iar", "SASRec")`
+(this clears *all* per-seed files for that model), optionally also delete
+its HPO DB, then re-run the benchmark cell.
+
+### Multi-seed final fit
+
+The final fit is repeated across multiple seeds per (dataset, model) so we
+can report mean ± std and run paired significance tests. HPO is *not*
+repeated — it stays single-seed for cost reasons and to avoid overfitting
+hparams to seed noise.
+
+Configured in [src/config.py](src/config.py):
+
+```python
+DEFAULT_SEEDS = [2020, 2021, 2022, 2023, 2024]
+SEEDS_PER_DATASET = {
+    "ml-1m": 3,                       # slowest dataset, 3 seeds
+    "ml-100k-iar": 5,                 # fast, 5 seeds
+    "amazon-digital-music": 5,
+    "amazon-office-products": 5,
+}
+SEEDS_PER_MODEL_DATASET = {}          # optional per-(ds, model) override
+```
+
+Each value can be either an int N (use the first N entries of
+`DEFAULT_SEEDS`) or an explicit list of seed integers.
+`SEEDS_PER_MODEL_DATASET[(ds, model)]` overrides the dataset default for a
+single (dataset, model) pair — useful when you want one specific model
+fitted to extra seeds without re-running the whole grid. `seeds_for(ds,
+model)` is the resolver used by the runner.
+
+The notebook reads `result["test_result"]["ndcg@10"]` for the mean across
+seeds (unchanged shape), and additionally `result["test_result_std"][...]`,
+`result["seeds_used"]`, `result["n_seeds"]`, and `result["per_seed"]` for
+the full per-seed breakdown.
 
 ## Adding a custom variant
 

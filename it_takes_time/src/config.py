@@ -37,6 +37,62 @@ HPO_EPOCHS = int(os.environ.get("HPO_EPOCHS", "10"))
 FINAL_EPOCHS = int(os.environ.get("FINAL_EPOCHS", "50"))
 EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
 
+
+# ─── Multi-seed final-fit configuration ────────────────────────────────────
+#
+# HPO runs once at a single seed (cheap and deterministic); the *final fit*
+# is repeated across N seeds with the HPO-found best_params so we can
+# measure variance and run paired significance tests. Each seed produces
+# its own JSON under EVAL_DIR; aggregation (mean/std across seeds) happens
+# at read time via runner.load_result / evaluation.aggregate_results.
+#
+# Seed list resolution for a (dataset, model) pair, in priority order:
+#   1. SEEDS_PER_MODEL_DATASET[(dataset, model)] — most specific
+#   2. SEEDS_PER_DATASET[dataset]
+#   3. DEFAULT_SEEDS[:1]
+# A value can be either an int N (use the first N entries of DEFAULT_SEEDS)
+# or an explicit list of ints.
+DEFAULT_SEEDS: list[int] = [2020, 2021, 2022, 2023, 2024]
+SEEDS_PER_DATASET: dict[str, int | list[int]] = {
+    "ml-1m": 3,
+    "ml-100k-iar": 5,
+    "amazon-digital-music": 5,
+    "amazon-office-products": 5,
+}
+# Per-(dataset, model) override. Empty by default; populate when you need to
+# run a specific model at a non-default seed count (e.g. ml-1m IA-SASRec-Add
+# at 5 seeds while other ml-1m models stay at 3).
+SEEDS_PER_MODEL_DATASET: dict[tuple[str, str], int | list[int]] = {}
+
+# Seed used by RecBole before this multi-seed schema existed. Eval JSONs
+# saved without a `__seed<N>` suffix correspond to this seed.
+LEGACY_SEED: int = 2020
+
+
+def seeds_for(dataset_name: str, model_name: str) -> list[int]:
+    """Resolve the seed list for a (dataset, model) pair.
+
+    Parameters:
+        dataset_name: Dataset key (e.g. ``"ml-1m"``).
+        model_name: Model key as used in ``MODEL_REGISTRY``.
+
+    Returns:
+        Concrete list of seed integers to fit the final model under, ordered.
+    """
+    spec: int | list[int] | None = SEEDS_PER_MODEL_DATASET.get((dataset_name, model_name))
+    if spec is None:
+        spec = SEEDS_PER_DATASET.get(dataset_name, 1)
+    if isinstance(spec, int):
+        if spec < 1:
+            raise ValueError(f"Seed count must be >= 1, got {spec}")
+        if spec > len(DEFAULT_SEEDS):
+            raise ValueError(
+                f"Asked for {spec} seeds but DEFAULT_SEEDS only has "
+                f"{len(DEFAULT_SEEDS)} entries; extend DEFAULT_SEEDS first."
+            )
+        return list(DEFAULT_SEEDS[:spec])
+    return list(spec)
+
 DATASETS: dict[str, dict] = {
     "ml-1m": {
         "url": "https://files.grouplens.org/datasets/movielens/ml-1m.zip",
