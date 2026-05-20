@@ -56,8 +56,8 @@
     "precision@50": 0.0103,
     "precision@100": 0.0063
   },
-  "train_seconds": 2731.3423998355865,
-  "checkpoint": "IASASRecVal-May-18-2026_09-40-33.pth",
+  "train_seconds": 2777.907958507538,
+  "checkpoint": "IASASRecVal-May-20-2026_12-07-19.pth",
   "config_dict": {
     "n_layers": 3,
     "n_heads": 1,
@@ -68,5 +68,5 @@
     "learning_rate": 0.001961331382415546,
     "intensity_norm": "minmax"
   },
-  "completed_at": "2026-05-18 10:26:05"
+  "completed_at": "2026-05-20 12:53:37"
 }
