@@ -73,6 +73,55 @@ def _build_config(
     return config, model_cls
 
 
+def _attach_curve_capture(trainer: Any) -> tuple[list[dict[str, Any]], list[float]]:
+    """Patch *trainer* in-place to record per-epoch valid scores + train losses.
+
+    RecBole's ``Trainer.fit`` already calls ``_valid_epoch`` and ``_train_epoch``
+    once per epoch (subject to ``eval_step``); this wrapper just intercepts
+    their return values. **Zero extra compute** — we are reusing work the
+    trainer would do anyway.
+
+    Useful for convergence plots, diagnosing under/overfitting, and deciding
+    whether ``FINAL_EPOCHS`` / ``HPO_EPOCHS`` are well-tuned per dataset.
+
+    Returns:
+        Tuple ``(valid_curve, train_losses)``; both lists are mutated in place
+        as ``trainer.fit`` runs. ``valid_curve`` entries look like
+        ``{"epoch": 0, "valid_score": 0.09, "valid_result": {"ndcg@10": 0.09, ...}}``.
+    """
+    valid_curve: list[dict[str, Any]] = []
+    train_losses: list[float | list[float]] = []
+    orig_valid = trainer._valid_epoch
+    orig_train = trainer._train_epoch
+
+    def _wrap_valid(*args, **kwargs):
+        valid_score, valid_result = orig_valid(*args, **kwargs)
+        valid_curve.append({
+            "epoch": len(valid_curve),
+            "valid_score": float(valid_score),
+            "valid_result": {k: float(v) for k, v in dict(valid_result).items()},
+        })
+        return valid_score, valid_result
+
+    def _wrap_train(*args, **kwargs):
+        loss = orig_train(*args, **kwargs)
+        if isinstance(loss, (int, float)):
+            train_losses.append(float(loss))
+        elif isinstance(loss, (list, tuple)):
+            train_losses.append([float(x) for x in loss])
+        else:
+            # Tensor or other scalar-like — best-effort cast.
+            try:
+                train_losses.append(float(loss))
+            except Exception:
+                train_losses.append(None)
+        return loss
+
+    trainer._valid_epoch = _wrap_valid
+    trainer._train_epoch = _wrap_train
+    return valid_curve, train_losses
+
+
 def _instantiate_model(config: Config, dataset: Any, model_cls: type | None) -> Any:
     """Instantiate and move a model to the configured device.
 
@@ -135,6 +184,7 @@ def train_one(
     train_data, valid_data, test_data = data_preparation(config, dataset)
     model = _instantiate_model(config, train_data._dataset, model_cls)
     trainer = get_trainer(config["MODEL_TYPE"], config["model"])(config, model)
+    valid_curve, train_losses = _attach_curve_capture(trainer)
 
     t0 = time.time()
     best_valid_score, best_valid_result = trainer.fit(
@@ -158,6 +208,10 @@ def train_one(
         "config_dict": {k: overrides.get(k) for k in overrides},
         "intensity_params": intensity_params,
         "seed": int(config["seed"]),
+        # Per-epoch convergence trace. Cheap to capture (no extra compute) and
+        # invaluable for figures / tuning epoch counts in retrospect.
+        "valid_curve": valid_curve,
+        "train_losses": train_losses,
     }
 
 
