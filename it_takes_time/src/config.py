@@ -54,7 +54,7 @@ EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
 # or an explicit list of ints.
 DEFAULT_SEEDS: list[int] = [2020, 2021, 2022, 2023, 2024]
 SEEDS_PER_DATASET: dict[str, int | list[int]] = {
-    "ml-1m": 3,
+    "ml-1m": 4,
     "ml-100k-iar": 5,
     "amazon-digital-music": 5,
     "amazon-office-products": 5,
