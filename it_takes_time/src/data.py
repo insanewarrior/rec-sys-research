@@ -245,18 +245,49 @@ def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
 
     df = df[["user_id", "item_id", "timestamp", "intensity"]].dropna()
 
+    # Dedupe repeated (user, item) interactions: SASRec-style sequential models
+    # expect each (user, item) to appear once per history. The Steam dump in
+    # particular contains exact-row duplicates (review re-scrapes) and legitimate
+    # multi-review pairs at different timestamps. Keep the latest row — its
+    # intensity reflects the most recent playtime, strictly more informative
+    # than any earlier value.
+    if spec.get("dedupe_user_item", True):
+        n0 = len(df)
+        # Sort by (user, timestamp) only — stable mergesort preserves the original
+        # source-file order within tied timestamps. We deliberately do NOT include
+        # item_id in the sort key: that would make same-day ties land in alphabetical
+        # item_id order, which is arbitrary noise.
+        df = (
+            df.sort_values(["user_id", "timestamp"], kind="mergesort")
+              .drop_duplicates(subset=["user_id", "item_id"], keep="last")
+        )
+        if len(df) < n0:
+            print(f"[data] Deduped (user, item): {n0:,} → {len(df):,} rows "
+                  f"(dropped {n0 - len(df):,})")
+
     # Optional deterministic subsample by user (used by Steam to hit ml-100k scale).
+    # Sample from users who would survive the dataset's 5-core filter, so the
+    # post-RecBole user count actually lands near sub_n. Without this, Steam's
+    # heavy long tail (many users with 1–2 reviews) leaves us with far fewer
+    # users than expected after RecBole applies user_inter_num_interval.
     sub_n = spec.get("subsample_users")
     if sub_n is not None:
         import numpy as np
         seed = int(spec.get("subsample_seed", 2020))
-        users = df["user_id"].unique()
-        if len(users) > sub_n:
+        min_inter = int(spec.get("min_user_inter", 1))
+        counts = df.groupby("user_id").size()
+        eligible = counts[counts >= min_inter].index.to_numpy()
+        if len(eligible) > sub_n:
             rng = np.random.default_rng(seed)
-            keep = rng.choice(users, size=sub_n, replace=False)
+            keep = rng.choice(eligible, size=sub_n, replace=False)
             df = df[df["user_id"].isin(keep)]
-            print(f"[data] Subsampled to {sub_n:,} users "
-                  f"(seed={seed}) → {len(df):,} interactions pre-filter")
+            print(f"[data] Subsampled to {sub_n:,} users with ≥{min_inter} "
+                  f"interactions (from {len(eligible):,} eligible, seed={seed}) "
+                  f"→ {len(df):,} interactions pre-RecBole-filter")
+        else:
+            df = df[df["user_id"].isin(eligible)]
+            print(f"[data] Only {len(eligible):,} users meet ≥{min_inter} "
+                  f"interactions; keeping all (requested {sub_n:,})")
 
     df = df.sort_values(["user_id", "timestamp"], kind="mergesort")
 

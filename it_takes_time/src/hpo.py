@@ -63,7 +63,7 @@ def _objective(dataset_name: str, model_name: str, trial: optuna.Trial) -> float
         ``best_valid_score`` if the metric key is not found.
     """
     spec = get_spec(model_name)
-    overrides = spec["search_space"](trial)
+    overrides = spec["search_space"](trial, dataset_name=dataset_name)
     overrides["epochs"] = HPO_EPOCHS
     out = train_one(
         dataset_name,

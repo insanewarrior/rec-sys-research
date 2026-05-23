@@ -63,7 +63,15 @@ def _bpr_static() -> dict[str, Any]:
     return {"loss_type": "BPR"}
 
 
-def sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
+# Small / heavy-tailed datasets (currently just Steam at 36k interactions, mean
+# seq length 12) expose single-seed-HPO fragility: hidden_size=32 + lr near 5e-3
+# converges only from a lucky init, then 4/5 final-fit seeds collapse to the
+# noise floor. For these datasets we drop the smallest hidden_size and lower the
+# learning-rate ceiling. Other datasets are unchanged.
+_NARROW_HPO_DATASETS = {"steam"}
+
+
+def sasrec_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for SASRec.
 
     Parameters:
@@ -73,18 +81,21 @@ def sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
         Dict of RecBole config overrides covering architecture and learning-rate
         hyperparameters for SASRec.
     """
+    narrow = dataset_name in _NARROW_HPO_DATASETS
+    hidden_choices = [64, 128] if narrow else [32, 64, 128]
+    lr_high = 2e-3 if narrow else 5e-3
     return {
         "n_layers": trial.suggest_int("n_layers", 1, 3),
         "n_heads": trial.suggest_categorical("n_heads", [1, 2, 4]),
-        "hidden_size": trial.suggest_categorical("hidden_size", [32, 64, 128]),
+        "hidden_size": trial.suggest_categorical("hidden_size", hidden_choices),
         "inner_size": trial.suggest_categorical("inner_size", [64, 128, 256]),
         "hidden_dropout_prob": trial.suggest_float("hidden_dropout_prob", 0.1, 0.5),
         "attn_dropout_prob": trial.suggest_float("attn_dropout_prob", 0.1, 0.5),
-        "learning_rate": trial.suggest_float("learning_rate", 1e-4, 5e-3, log=True),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-4, lr_high, log=True),
     }
 
 
-def ia_sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
+def ia_sasrec_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for IA-SASRec variants.
 
     Reuses the vanilla SASRec search space and adds a normalisation-mode knob
@@ -98,14 +109,14 @@ def ia_sasrec_space(trial: optuna.Trial) -> dict[str, Any]:
         Dict of RecBole config overrides covering SASRec hyperparameters plus
         ``intensity_norm``.
     """
-    base = sasrec_space(trial)
+    base = sasrec_space(trial, dataset_name=dataset_name)
     base["intensity_norm"] = trial.suggest_categorical(
         "intensity_norm", ["log1p_minmax", "minmax", "zscore"]
     )
     return base
 
 
-def bert4rec_space(trial: optuna.Trial) -> dict[str, Any]:
+def bert4rec_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for BERT4Rec.
 
     Parameters:
@@ -127,7 +138,7 @@ def bert4rec_space(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
-def gru4rec_space(trial: optuna.Trial) -> dict[str, Any]:
+def gru4rec_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for GRU4Rec.
 
     Parameters:
@@ -146,7 +157,7 @@ def gru4rec_space(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
-def narm_space(trial: optuna.Trial) -> dict[str, Any]:
+def narm_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for NARM.
 
     Parameters:
@@ -165,7 +176,7 @@ def narm_space(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
-def fpmc_space(trial: optuna.Trial) -> dict[str, Any]:
+def fpmc_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for FPMC.
 
     Parameters:
@@ -181,7 +192,7 @@ def fpmc_space(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
-def bpr_space(trial: optuna.Trial) -> dict[str, Any]:
+def bpr_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for BPR (Bayesian Personalised Ranking MF).
 
     Parameters:
@@ -197,7 +208,7 @@ def bpr_space(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
-def itemknn_space(trial: optuna.Trial) -> dict[str, Any]:
+def itemknn_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Sample hyperparameters for ItemKNN.
 
     Parameters:
@@ -213,7 +224,7 @@ def itemknn_space(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
-def pop_space(trial: optuna.Trial) -> dict[str, Any]:
+def pop_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
     """Return an empty search space for the Popularity baseline (no hyperparameters).
 
     Parameters:
