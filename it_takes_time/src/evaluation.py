@@ -148,7 +148,10 @@ def paired_significance(
             c_mean = sum(c_arr) / len(c_arr)
             t_p = float(sps.ttest_rel(c_arr, b_arr).pvalue)
             try:
-                w_p = float(sps.wilcoxon(c_arr, b_arr, zero_method="zsplit").pvalue)
+                # method="exact" uses the discrete null distribution — required
+                # at small n (n=5 ⇒ p-floor 1/2^4 = 0.0625, can never reject at
+                # α=0.05). Avoids SciPy's normal-approximation warning.
+                w_p = float(sps.wilcoxon(c_arr, b_arr, zero_method="zsplit", method="exact").pvalue)
             except ValueError:
                 # All-zero diffs — challenger and baseline identical.
                 w_p = 1.0

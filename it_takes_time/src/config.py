@@ -58,6 +58,7 @@ SEEDS_PER_DATASET: dict[str, int | list[int]] = {
     "ml-100k-iar": 5,
     "amazon-digital-music": 5,
     "amazon-office-products": 5,
+    "steam": 5,
 }
 # Per-(dataset, model) override. Empty by default; populate when you need to
 # run a specific model at a non-default seed count (e.g. ml-1m IA-SASRec-Add
@@ -155,6 +156,29 @@ DATASETS: dict[str, dict] = {
             "unixReviewTime": "timestamp",
         },
         "intensity_col": "rating",
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
+    # Steam reviews (Wan & McAuley / W. Kang). Native (user, item, date, hours_played).
+    # The file is Python-repr jsonl ({u'k': 'v', ...}), not strict JSON — parser uses
+    # ast.literal_eval. Subsampled to ~ml-100k scale via random user selection.
+    "steam": {
+        "url": "https://cseweb.ucsd.edu/~wckang/steam_reviews.json.gz",
+        "download_format": "gz_keep",            # keep .gz on disk; stream-parse it
+        "raw_subdir": "steam",
+        "ratings_file": "steam_reviews.json.gz",
+        "format": "pylit_jsonl_gz",
+        "column_map": {
+            "username": "user_id",
+            "product_id": "item_id",
+            "date": "timestamp",                  # parsed to unix seconds in data.py
+            "hours": "intensity",
+        },
+        "intensity_col": "intensity",            # already renamed via column_map
+        "timestamp_format": "%Y-%m-%d",
+        "subsample_users": 3000,                 # ~ml-100k size after 5-core
+        "subsample_seed": 2020,
         "min_user_inter": 5,
         "min_item_inter": 5,
         "rating_threshold": 0,

@@ -54,6 +54,25 @@ def _download_and_gunzip(url: str, target_dir: Path, out_file: str) -> None:
     print(f"[data] Wrote {out_path}")
 
 
+def _download_keep_gz(url: str, target_dir: Path, out_file: str) -> None:
+    """Download a gzip-compressed file as-is (no decompression) to *target_dir/out_file*.
+
+    Used when the uncompressed payload is large enough that we want to stream-decode it
+    later rather than materialize it to disk. The compressed file is streamed to disk
+    in chunks so we never hold the full payload in memory.
+    """
+    target_dir.mkdir(parents=True, exist_ok=True)
+    out_path = target_dir / out_file
+    print(f"[data] Downloading {url} ...")
+    with urllib.request.urlopen(url) as resp, out_path.open("wb") as f:
+        while True:
+            chunk = resp.read(1 << 20)  # 1 MiB chunks
+            if not chunk:
+                break
+            f.write(chunk)
+    print(f"[data] Wrote {out_path} ({out_path.stat().st_size / 1e6:.1f} MB compressed)")
+
+
 def _download_via_kagglehub(kaggle_dataset: str, target_dir: Path, ratings_file: str) -> None:
     """Download a Kaggle dataset via the ``kagglehub`` SDK and copy the wanted file.
 
@@ -89,6 +108,46 @@ def _download_via_kagglehub(kaggle_dataset: str, target_dir: Path, ratings_file:
     print(f"[data] Copied {src} -> {target_dir / ratings_file}")
 
 
+def _parse_pylit_jsonl_gz(gz_path: Path, spec: dict) -> pd.DataFrame:
+    """Stream-parse a gzipped Python-repr jsonl file (one ``{u'k': v, ...}`` per line).
+
+    Used for the Steam reviews dump, which is ~1.3 GB compressed / ~7 GB uncompressed
+    in ``repr()`` form rather than strict JSON, so ``json.loads`` fails. We
+    ``ast.literal_eval`` each line, keep only the renamed fields, and cache the result
+    as parquet next to the .gz so subsequent ``prepare_recbole_dataset`` calls skip
+    the multi-minute parse.
+    """
+    import ast
+    cache = gz_path.with_suffix("").with_suffix(".parquet")  # foo.json.gz → foo.parquet
+    if cache.exists():
+        return pd.read_parquet(cache)
+
+    col_map = dict(spec.get("column_map") or {})
+    src_cols = list(col_map.keys())
+    dst_cols = [col_map[c] for c in src_cols]
+
+    print(f"[data] Stream-parsing {gz_path.name} (Python-repr jsonl) — this is slow once …")
+    rows: list[tuple] = []
+    bad = 0
+    with gzip.open(gz_path, "rt", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            try:
+                d = ast.literal_eval(line)
+            except (ValueError, SyntaxError, MemoryError):
+                bad += 1
+                continue
+            try:
+                rows.append(tuple(d[c] for c in src_cols))
+            except KeyError:
+                bad += 1
+                continue
+    print(f"[data] Parsed {len(rows):,} records, skipped {bad:,}")
+    df = pd.DataFrame(rows, columns=dst_cols)
+    df.to_parquet(cache, index=False)
+    print(f"[data] Cached parsed dataframe to {cache}")
+    return df
+
+
 def _ensure_raw(dataset_name: str) -> Path:
     """Return the raw data directory for *dataset_name*, downloading if necessary.
 
@@ -109,8 +168,11 @@ def _ensure_raw(dataset_name: str) -> Path:
     if "kaggle_dataset" in spec:
         _download_via_kagglehub(spec["kaggle_dataset"], raw_dir, spec["ratings_file"])
     elif "url" in spec:
-        if spec.get("download_format") == "gz":
+        download_format = spec.get("download_format")
+        if download_format == "gz":
             _download_and_gunzip(spec["url"], raw_dir, spec["ratings_file"])
+        elif download_format == "gz_keep":
+            _download_keep_gz(spec["url"], raw_dir, spec["ratings_file"])
         else:
             _download_and_unzip(spec["url"], DATA_DIR)
     else:
@@ -150,10 +212,13 @@ def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
         return out_dir
 
     raw_dir = _ensure_raw(dataset_name)
-    if spec.get("format") == "jsonl":
+    fmt = spec.get("format")
+    if fmt == "jsonl":
         df = pd.read_json(raw_dir / spec["ratings_file"], lines=True)
         if spec.get("column_map"):
             df = df.rename(columns=spec["column_map"])
+    elif fmt == "pylit_jsonl_gz":
+        df = _parse_pylit_jsonl_gz(raw_dir / spec["ratings_file"], spec)
     else:
         df = pd.read_csv(
             raw_dir / spec["ratings_file"],
@@ -167,10 +232,32 @@ def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
     if spec.get("rating_threshold", 0) > 0:
         df = df[df["rating"] >= spec["rating_threshold"]]
 
-    intensity_col = spec["intensity_col"]
-    df = df.rename(columns={intensity_col: "intensity"})
+    # Some sources (Steam) provide timestamps as date strings — convert to unix seconds.
+    ts_format = spec.get("timestamp_format")
+    if ts_format is not None and df["timestamp"].dtype == object:
+        ts = pd.to_datetime(df["timestamp"], format=ts_format, errors="coerce")
+        df = df.assign(timestamp=(ts.astype("int64") // 10**9))
+        df = df[df["timestamp"] > 0]
 
-    df = df[["user_id", "item_id", "timestamp", "intensity"]]
+    intensity_col = spec["intensity_col"]
+    if intensity_col != "intensity":
+        df = df.rename(columns={intensity_col: "intensity"})
+
+    df = df[["user_id", "item_id", "timestamp", "intensity"]].dropna()
+
+    # Optional deterministic subsample by user (used by Steam to hit ml-100k scale).
+    sub_n = spec.get("subsample_users")
+    if sub_n is not None:
+        import numpy as np
+        seed = int(spec.get("subsample_seed", 2020))
+        users = df["user_id"].unique()
+        if len(users) > sub_n:
+            rng = np.random.default_rng(seed)
+            keep = rng.choice(users, size=sub_n, replace=False)
+            df = df[df["user_id"].isin(keep)]
+            print(f"[data] Subsampled to {sub_n:,} users "
+                  f"(seed={seed}) → {len(df):,} interactions pre-filter")
+
     df = df.sort_values(["user_id", "timestamp"], kind="mergesort")
 
     header = "user_id:token\titem_id:token\ttimestamp:float\tintensity:float\n"
