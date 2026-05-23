@@ -54,12 +54,13 @@ EARLY_STOP_PATIENCE = int(os.environ.get("EARLY_STOP_PATIENCE", "5"))
 # or an explicit list of ints.
 DEFAULT_SEEDS: list[int] = [2020, 2021, 2022, 2023, 2024]
 SEEDS_PER_DATASET: dict[str, int | list[int]] = {
-    "ml-1m": 4,
+    "ml-1m": 5,
     "ml-100k-iar": 5,
     "amazon-digital-music": 5,
     "amazon-office-products": 5,
     "steam-3k": 5,
     "steam-8k": 5,
+    "steam-15k": 5,
 }
 # Per-(dataset, model) override. Empty by default; populate when you need to
 # run a specific model at a non-default seed count (e.g. ml-1m IA-SASRec-Add
@@ -190,7 +191,7 @@ DATASETS: dict[str, dict] = {
     "steam-8k": {
         "url": "https://cseweb.ucsd.edu/~wckang/steam_reviews.json.gz",
         "download_format": "gz_keep",
-        "raw_subdir": "steam",                   # shared with steam-3k
+        "raw_subdir": "steam",                   # shared with steam-3k / steam-15k
         "ratings_file": "steam_reviews.json.gz",
         "format": "pylit_jsonl_gz",
         "column_map": {
@@ -202,6 +203,26 @@ DATASETS: dict[str, dict] = {
         "intensity_col": "intensity",
         "timestamp_format": "%Y-%m-%d",
         "subsample_users": 8000,
+        "subsample_seed": 2020,
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
+    "steam-15k": {
+        "url": "https://cseweb.ucsd.edu/~wckang/steam_reviews.json.gz",
+        "download_format": "gz_keep",
+        "raw_subdir": "steam",                   # shared with steam-3k / steam-8k
+        "ratings_file": "steam_reviews.json.gz",
+        "format": "pylit_jsonl_gz",
+        "column_map": {
+            "username": "user_id",
+            "product_id": "item_id",
+            "date": "timestamp",
+            "hours": "intensity",
+        },
+        "intensity_col": "intensity",
+        "timestamp_format": "%Y-%m-%d",
+        "subsample_users": 15000,
         "subsample_seed": 2020,
         "min_user_inter": 5,
         "min_item_inter": 5,

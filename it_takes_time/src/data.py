@@ -270,20 +270,29 @@ def prepare_recbole_dataset(dataset_name: str, force: bool = False) -> Path:
     # post-RecBole user count actually lands near sub_n. Without this, Steam's
     # heavy long tail (many users with 1–2 reviews) leaves us with far fewer
     # users than expected after RecBole applies user_inter_num_interval.
+    #
+    # Nested-prefix sampling: we sort `eligible` first (stable order independent
+    # of pandas internals), then take the first `sub_n` of a deterministic
+    # permutation under `subsample_seed`. This guarantees that for the same
+    # seed, larger sub_n strictly contains the user set picked by smaller sub_n
+    # — i.e. steam-3k users ⊂ steam-8k users ⊂ steam-15k users. Without this,
+    # `rng.choice(replace=False)` uses partial Fisher-Yates and the samples
+    # are independent random subsets, confounding sample-size with user-identity.
     sub_n = spec.get("subsample_users")
     if sub_n is not None:
         import numpy as np
         seed = int(spec.get("subsample_seed", 2020))
         min_inter = int(spec.get("min_user_inter", 1))
         counts = df.groupby("user_id").size()
-        eligible = counts[counts >= min_inter].index.to_numpy()
+        eligible = np.sort(counts[counts >= min_inter].index.to_numpy())
         if len(eligible) > sub_n:
             rng = np.random.default_rng(seed)
-            keep = rng.choice(eligible, size=sub_n, replace=False)
+            perm = rng.permutation(eligible)
+            keep = perm[:sub_n]
             df = df[df["user_id"].isin(keep)]
             print(f"[data] Subsampled to {sub_n:,} users with ≥{min_inter} "
-                  f"interactions (from {len(eligible):,} eligible, seed={seed}) "
-                  f"→ {len(df):,} interactions pre-RecBole-filter")
+                  f"interactions (from {len(eligible):,} eligible, seed={seed}, "
+                  f"nested-prefix) → {len(df):,} interactions pre-RecBole-filter")
         else:
             df = df[df["user_id"].isin(eligible)]
             print(f"[data] Only {len(eligible):,} users meet ≥{min_inter} "

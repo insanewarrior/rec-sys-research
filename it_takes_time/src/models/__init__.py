@@ -68,7 +68,7 @@ def _bpr_static() -> dict[str, Any]:
 # converges only from a lucky init, then 4/5 final-fit seeds collapse to the
 # noise floor. For these datasets we drop the smallest hidden_size and lower the
 # learning-rate ceiling. Other datasets are unchanged.
-_NARROW_HPO_DATASETS = {"steam-3k", "steam-8k"}
+_NARROW_HPO_DATASETS = {"steam-3k", "steam-8k", "steam-15k"}
 
 
 def sasrec_space(trial: optuna.Trial, dataset_name: str | None = None) -> dict[str, Any]:
