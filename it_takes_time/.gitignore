@@ -2,6 +2,7 @@
 data/
 recbole_data/
 results/checkpoints/
+results/per_user/
 saved/
 log/
 log_tensorboard/
