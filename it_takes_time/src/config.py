@@ -58,7 +58,8 @@ SEEDS_PER_DATASET: dict[str, int | list[int]] = {
     "ml-100k-iar": 5,
     "amazon-digital-music": 5,
     "amazon-office-products": 5,
-    "steam": 5,
+    "steam-3k": 5,
+    "steam-8k": 5,
 }
 # Per-(dataset, model) override. Empty by default; populate when you need to
 # run a specific model at a non-default seed count (e.g. ml-1m IA-SASRec-Add
@@ -162,22 +163,45 @@ DATASETS: dict[str, dict] = {
     },
     # Steam reviews (Wan & McAuley / W. Kang). Native (user, item, date, hours_played).
     # The file is Python-repr jsonl ({u'k': 'v', ...}), not strict JSON — parser uses
-    # ast.literal_eval. Subsampled to ~ml-100k scale via random user selection.
-    "steam": {
+    # ast.literal_eval. Two subsample sizes share the same raw download +
+    # parsed-parquet cache via raw_subdir="steam":
+    #   - steam-3k: ml-100k-size parity (~36k interactions post-5-core)
+    #   - steam-8k: ml-1m-size parity, more reliable absolute numbers
+    "steam-3k": {
         "url": "https://cseweb.ucsd.edu/~wckang/steam_reviews.json.gz",
-        "download_format": "gz_keep",            # keep .gz on disk; stream-parse it
-        "raw_subdir": "steam",
+        "download_format": "gz_keep",
+        "raw_subdir": "steam",                   # shared with steam-8k
         "ratings_file": "steam_reviews.json.gz",
         "format": "pylit_jsonl_gz",
         "column_map": {
             "username": "user_id",
             "product_id": "item_id",
-            "date": "timestamp",                  # parsed to unix seconds in data.py
+            "date": "timestamp",
             "hours": "intensity",
         },
-        "intensity_col": "intensity",            # already renamed via column_map
+        "intensity_col": "intensity",
         "timestamp_format": "%Y-%m-%d",
-        "subsample_users": 3000,                 # ~ml-100k size after 5-core
+        "subsample_users": 3000,
+        "subsample_seed": 2020,
+        "min_user_inter": 5,
+        "min_item_inter": 5,
+        "rating_threshold": 0,
+    },
+    "steam-8k": {
+        "url": "https://cseweb.ucsd.edu/~wckang/steam_reviews.json.gz",
+        "download_format": "gz_keep",
+        "raw_subdir": "steam",                   # shared with steam-3k
+        "ratings_file": "steam_reviews.json.gz",
+        "format": "pylit_jsonl_gz",
+        "column_map": {
+            "username": "user_id",
+            "product_id": "item_id",
+            "date": "timestamp",
+            "hours": "intensity",
+        },
+        "intensity_col": "intensity",
+        "timestamp_format": "%Y-%m-%d",
+        "subsample_users": 8000,
         "subsample_seed": 2020,
         "min_user_inter": 5,
         "min_item_inter": 5,

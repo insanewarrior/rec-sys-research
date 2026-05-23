@@ -1,6 +1,6 @@
 {
   "model": "IA-SASRec-Mul",
-  "dataset": "steam",
+  "dataset": "steam-3k",
   "best_params": {
     "n_layers": 3,
     "n_heads": 2,
