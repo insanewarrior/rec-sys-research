@@ -1,0 +1,62 @@
+% Section: Experimental Setup
+% =====================================================================
+% DESCRIPTION
+% -----------
+% Three subsections. The point is to make the negative result
+% UNATTACKABLE on protocol grounds — every "you under-tuned the
+% variant" or "you got unlucky with seeds" objection must be answered
+% here.
+%
+%   4.1 Datasets (Table 2).
+%       Seven datasets chosen to span intensity-signal richness:
+%         Discrete low-entropy:  ML-100K-iar, ML-1M, Amazon Digital
+%                                Music, Amazon Office Products
+%                                (1-5 integer ratings).
+%         Continuous heavy-tail: Steam-3k / Steam-8k / Steam-15k
+%                                (hours played; subset sizes refer to
+%                                top-N most-active users).
+%       Columns: |U|, |I|, |interactions|, density, intensity source,
+%       leave-one-out test target. Pull numbers from src/data.py + the
+%       loaded .inter files; report after the project's standard 5-core
+%       filtering.
+%
+%   4.2 Training & HPO.
+%       - Identical Optuna search space per (dataset, model) — see
+%         src/hpo.py and src/models/__init__.py for the registry.
+%       - HPO objective: validation NDCG@10. Budget: N_TRIALS Optuna
+%         trials per (dataset, model). Report the actual trial counts
+%         and wall-clock per cell to demonstrate budget parity (this
+%         is what reviewers attack first).
+%       - Final fit: train with the seed-fixed best_params for up to
+%         MAX_EPOCHS with early stopping on validation NDCG@10.
+%       - Five seeds {2020, 2021, 2022, 2023, 2024}. CAVEAT: ML-1M has
+%         four seeds (seed2024 not yet completed at submission time) —
+%         flag explicitly here and re-run before camera-ready.
+%
+%   4.3 Evaluation protocol (the methodological backbone).
+%       Triple-gate significance, all three must hold for a result to
+%       count as "robust":
+%         (i)   Seed-level paired t-test (paired_significance in
+%               src/evaluation.py), df = n_seeds - 1, alpha = 0.05.
+%               Measures TRAINING-STOCHASTICITY variance.
+%         (ii)  Per-user paired bootstrap CI (B=2000 resamples) on
+%               aligned per-user metric diffs. Measures
+%               TEST-POPULATION variance.
+%         (iii) Per-seed CI sign-agreement majority — guards against
+%               a single lucky seed driving the pooled bootstrap.
+%       Wilcoxon signed-rank is reported for completeness but flagged
+%       as INFORMATIONAL ONLY at n=5 (exact p-floor is 0.0625 — cannot
+%       reject at alpha=0.05).
+%       Cohen's d on per-user diffs reported as the
+%       PRACTICAL-significance reality check; with thousands of test
+%       users, statistical significance can be trivial.
+%
+%   4.4 Implementation & reproducibility.
+%       Built on RecBole \citep{zhao2021recbole}; HPO via Optuna
+%       \citep{akiba2019optuna}. Code, checkpoints, eval JSONs, and
+%       per-user metric parquets released; the analysis is reproducible
+%       end-to-end from \texttt{notebooks/1\_significance.ipynb}.
+% =====================================================================
+\section{Experimental Setup}
+TODO: 4.1 datasets table, 4.2 training/HPO budget, 4.3 triple-gate
+significance protocol, 4.4 implementation note.

@@ -1,0 +1,30 @@
+% Section: Abstract
+% =====================================================================
+% DESCRIPTION
+% -----------
+% Target length: ~150 words. Must hit five beats in order:
+%   1. Hypothesis: per-interaction intensity (rating / playtime / dwell)
+%      is richer than binary presence and should help attention-based
+%      sequential recommenders.
+%   2. What we tried: three drop-in IA-SASRec variants (Add / Mul / Val)
+%      that inject a learned per-layer scalar lambda gating the
+%      intensity signal into self-attention.
+%   3. Protocol: 7 datasets (ML-100K, ML-1M, Amazon Digital Music,
+%      Amazon Office Products, Steam-3k/8k/15k), 5 seeds each (4 for
+%      ML-1M), Optuna HPO per (dataset, model), evaluated with paired
+%      t-test + per-user paired bootstrap + per-seed CI sign agreement.
+%   4. Headline: no robust improvement on NDCG@10 / Recall@10 anywhere;
+%      Steam — the dataset with the strongest, most continuous intensity
+%      signal — shows the LARGEST significant degradations (up to -9.5%
+%      NDCG@10, p<0.05).
+%   5. Mechanism: learned lambdas remain large (0.5-1.0) precisely where
+%      the model is being hurt; the per-layer scalar gate cannot opt out
+%      of harmful signal. We argue this rules out simple gating as a
+%      sufficient escape hatch and outline what intensity-injection
+%      designs should look like instead.
+% Lift-from: ia_sasrec.md §1; numeric results re-confirmed against
+%            results/eval/*.json.
+% =====================================================================
+\begin{abstract}
+TODO: 150-word abstract following the five-beat structure above.
+\end{abstract}

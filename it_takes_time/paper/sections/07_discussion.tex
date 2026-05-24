@@ -1,0 +1,49 @@
+% Section: Discussion
+% =====================================================================
+% DESCRIPTION
+% -----------
+% Pull the negative result up to the level of general lessons for the
+% sequential-recommender community. Don't over-claim — every sentence
+% should be defensible from the data in §5-6.
+%
+% Three threads:
+%
+%   7.1 What the result says about intensity as a signal.
+%       Intensity is NOT free supervision. The implicit assumption in
+%       a lot of "side information helps" literature is that any
+%       additional channel can only add information. Our results
+%       falsify that assumption for per-interaction intensity under
+%       scalar gating: the channel can carry NEGATIVE information
+%       once optimisation locks lambda > 0 without a gradient path
+%       back to 0.
+%
+%   7.2 What the result says about benchmarking practice.
+%       Under a single-seed protocol with no per-user CIs, the
+%       Amazon-Office-Products IA-SASRec-Add MRR@10 +3.6% (p=0.025)
+%       would be the headline. Our triple-gate protocol surfaces it
+%       as a single-cell observation: it does not generalise across
+%       datasets or even across metrics on the same dataset (the
+%       same configuration is n.s. on NDCG@10 and Recall@10). This
+%       is exactly the failure mode flagged by Ferrari Dacrema et al.
+%       and Sun et al. — and a working example of the protocol
+%       catching it.
+%
+%   7.3 Threats to validity.
+%       - Optuna budget: were variants under-tuned? Report the trial
+%         counts and final-epoch counts side-by-side; the SASRec
+%         best_params are not systematically deeper / wider than the
+%         IA-SASRec ones, suggesting budget parity is real.
+%       - Single intensity normalisation FAMILY per dataset
+%         (best of {none, minmax, log1p_minmax, zscore} per
+%         best_params). A richer normalisation search might help on
+%         Steam; we acknowledge this and leave it as future work.
+%       - The lambda=0 ablation in §6.3 has not been run; without it,
+%         the "escape hatch fails" claim rests on observing high
+%         learned lambda + degraded metrics, but cannot exclude the
+%         counter-narrative "lambda=0 would also have degraded".
+%       - Five-seed paired t is conservative (df=4); we mitigate with
+%         the per-user bootstrap, which has thousands of units.
+% =====================================================================
+\section{Discussion}
+TODO: 7.1 intensity as signal, 7.2 benchmarking-practice lesson, 7.3
+threats to validity.

@@ -1,0 +1,55 @@
+% Section: Method — IA-SASRec
+% =====================================================================
+% DESCRIPTION
+% -----------
+% Lift directly from ia_sasrec.md §2-4. Goal: define the three variants
+% with enough mathematical precision that a reviewer can reproduce them
+% from this section alone. Keep notation consistent with SASRec.
+%
+% Subsection plan:
+%   3.1 Background: vanilla SASRec attention.
+%       softmax(Q K^T / sqrt(d)) V                                (1)
+%       — purely positional + content; no notion of how STRONGLY a
+%       past interaction was experienced.
+%
+%   3.2 Three intensity injections, each gated by one learnable scalar
+%       lambda per layer (initialised to 1.0):
+%         Add: softmax( Q K^T / sqrt(d) + lambda * w_k ) V         (2)
+%              -> additive logit bias from key-position intensity.
+%         Mul: softmax( (Q K^T / sqrt(d)) * (1 + lambda*(w_k-1)) ) V (3)
+%              -> multiplicative scaling of logits; lambda=0 -> SASRec.
+%         Val: ( softmax(Q K^T / sqrt(d)) * (1 + lambda*(w_k-1)) ) V (4)
+%              -> post-softmax key reweighting; preserves attention as
+%              a probability distribution but reweights how much each
+%              key's value contributes. NEW SEMANTICS — note in caption
+%              that this is a breaking change vs. earlier IA-SASRec
+%              drafts (the old Val multiplied the post-attention
+%              context by query-position intensity and could not
+%              reorder candidates; see ia_sasrec.md).
+%
+%   3.3 The lambda escape hatch (load-bearing for §6 mechanism story):
+%       At lambda=0 every variant collapses *exactly* to SASRec, so a
+%       fair learner that finds intensity uninformative should drive
+%       lambda toward 0 and recover the baseline. This is the
+%       prediction we test in §6.
+%
+%   3.4 Intensity normalisation (lift ia_sasrec.md §4):
+%       Four modes: none, minmax (with MINMAX_FLOOR=0.1 so the
+%       weakest real signal stays distinguishable from padding),
+%       log1p_minmax (default for heavy-tailed playtime), zscore.
+%       Treated as a hyperparameter; the choice is logged in
+%       results/eval/*.json under best_params.intensity_norm.
+%
+%   3.5 Parameter cost: ONE scalar per layer per variant. With L=2-3
+%       layers this is 2-3 extra parameters total — strictly less than
+%       any prior side-information injection.
+%
+% Reusable assets:
+%   - README.md "IA-SASRec — what's new" table -> Table 1 of this section.
+%   - docs/protocol_neural_networks.tex \best/\second macros for any
+%     comparison tables here.
+% =====================================================================
+\section{IA-SASRec: Intensity-Aware Self-Attention}
+TODO: 3.1 background, 3.2 three variants (Eqs. 2-4), 3.3 lambda escape
+hatch, 3.4 normalisation modes, 3.5 parameter cost. Lift from
+\texttt{ia\_sasrec.md} §2-4.

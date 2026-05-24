@@ -1,0 +1,27 @@
+% Section: Conclusion
+% =====================================================================
+% DESCRIPTION
+% -----------
+% ~100 words. Three sentences:
+%   (1) Recap: we tested three drop-in intensity-injection variants of
+%       SASRec across 7 datasets and 5 seeds with a triple-gate
+%       significance protocol; none deliver a robust improvement, and
+%       the failure is largest on the dataset with the strongest
+%       intensity signal.
+%   (2) Lesson: a single per-layer scalar lambda is insufficient as an
+%       escape hatch — the learned lambda stays large where the model
+%       is being hurt, so the architectural opt-out predicted at
+%       lambda=0 is not realised in practice.
+%   (3) Future directions worth trying instead:
+%         - token-level (per-position) intensity gating rather than
+%           per-layer scalar;
+%         - mixture-of-experts on intensity bins (e.g. discrete buckets
+%           by post-norm percentile);
+%         - intensity as a side-token in the sequence rather than an
+%           attention modifier (cheaper, decouples the gradient).
+%   Plus the standard reproducibility pointer: code, checkpoints,
+%   per-user metrics are released.
+% =====================================================================
+\section{Conclusion}
+TODO: 100-word recap + lesson + three future-work pointers per the
+plan above.

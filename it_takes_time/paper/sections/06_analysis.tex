@@ -1,0 +1,66 @@
+% Section: Analysis — Why does intensity hurt?
+% =====================================================================
+% DESCRIPTION
+% -----------
+% The mechanism story. Without this section the paper is just "we
+% tried, it didn't work". With this section it becomes
+% "we tried, it didn't work, and here's the architectural reason —
+% which the field should know before building variant #47."
+%
+%   6.1 lambda calibration figure (Figure 2).
+%       Source plot: results/lambda_vs_delta.png — copy into
+%       paper/figures/. Each point = one (dataset, variant) pair.
+%       X = mean learned lambda across seeds. Y = mean test-NDCG@10 Δ
+%       vs SASRec across seeds. Reading:
+%         - Top-right quadrant: model uses intensity AND gains.
+%           Predicted under the hypothesis; observed: empty / sparse.
+%         - Bottom-right quadrant: model uses intensity AND loses.
+%           Observed: Steam clusters here with lambda 0.55-0.99.
+%         - Origin: model opts out (lambda~0) AND recovers SASRec.
+%           Observed: a few ML-1M points sit near origin (Val
+%           lambda=0.07).
+%       The plot's punchline: there is no positive correlation
+%       between lambda and Δ. The escape-hatch story FAILS in practice
+%       — high lambda does not predict gain (and on Steam, predicts
+%       loss).
+%
+%   6.2 The Steam paradox.
+%       Steam has the strongest intensity signal yet the worst
+%       outcomes. Two non-mutually-exclusive hypotheses worth probing:
+%         (a) Distribution shape: playtime is heavy-tailed
+%             (log-normal-ish). After log1p_minmax, a 100h game vs.
+%             a 2h game collapses to a narrow band — the model is
+%             forced to attend to a near-constant signal that adds
+%             variance without information. To diagnose: plot
+%             histogram of post-normalisation intensity per dataset
+%             (data is in the .inter files). If Steam's distribution
+%             is near-constant after norm, the diagnosis lands.
+%         (b) Popularity confound: high-playtime games are also
+%             popular; item-embedding learning already absorbs that
+%             signal, so the extra channel only adds variance.
+%             To diagnose: per-dataset Spearman correlation between
+%             per-interaction intensity and item popularity rank.
+%
+%   6.3 Ablation: lambda = 0 vs. lambda = 1 vs. learned.
+%       TODO (FLAG IN PAPER): this ablation has NOT been run yet. It
+%       is the single most important pre-submission task because it
+%       directly tests the "escape-hatch" claim. Expected outcome on
+%       Steam: lambda=0 matches SASRec; lambda=1 matches IA-SASRec;
+%       learned sits between — confirming that the model could opt
+%       out but doesn't, because there is no usable gradient signal
+%       pointing it back to lambda=0.
+%
+%   6.4 Implication for IA-SASRec design.
+%       A SINGLE scalar per layer is too coarse:
+%       - It cannot down-weight specific intensity values (e.g. mute
+%         the 100h tail while keeping the moderate range).
+%       - It cannot let some heads use intensity while others ignore
+%         it (lambda is shared across heads in our implementation).
+%       - It conflates "intensity is informative" with "intensity, in
+%         its current normalised form, is informative" — confounding
+%         the architectural claim with the preprocessing choice.
+% =====================================================================
+\section{Analysis}
+TODO: 6.1 lambda-vs-Delta figure + reading, 6.2 Steam paradox probes,
+6.3 lambda ablation (mark as REQUIRED before submission), 6.4
+architectural implications.

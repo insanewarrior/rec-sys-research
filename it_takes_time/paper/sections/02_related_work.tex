@@ -1,0 +1,41 @@
+% Section: Related Work
+% =====================================================================
+% DESCRIPTION
+% -----------
+% Three buckets, each ~one paragraph. Goal is to (a) place IA-SASRec in
+% the literature and (b) make the gap concrete: no prior work isolates
+% PER-INTERACTION INTENSITY as the injected attention signal.
+%
+% Bucket A — Sequential attention recommenders:
+%   - SASRec \citep{kang2018sasrec}: causal self-attention over the
+%     interaction sequence; the baseline.
+%   - BERT4Rec \citep{sun2019bert4rec}: bidirectional masked-LM
+%     pretraining.
+%   - TiSASRec \citep{li2020tisasrec}: injects RELATIVE TIME GAPS
+%     between interactions into attention. Closest prior art — but the
+%     injected signal is temporal, not interaction strength.
+%
+% Bucket B — Side-information injection in sequence models:
+%   - FDSA \citep{zhang2019fdsa}, S3-Rec \citep{zhou2020s3rec}: inject
+%     item-side features (category, attribute) via separate streams or
+%     pretraining objectives.
+%   - Frame the distinction: these inject *item* metadata; IA-SASRec
+%     injects *interaction-level* intensity, which varies across users
+%     for the same item.
+%
+% Bucket C — Reproducibility / benchmarking critiques:
+%   - Ferrari Dacrema et al. \citep{ferrari2019} — many neural rec
+%     models fail to beat tuned baselines once protocol is fixed.
+%   - Sun et al. \citep{sun2020daisy} — single-seed reporting inflates
+%     gains. Our triple-gate significance protocol is designed against
+%     exactly these failure modes; the Amazon-Office-Products positive
+%     cell (Add, MRR@10, +3.6%, p=0.025) would have been a publishable
+%     "win" under a one-seed protocol — we show it does not generalise.
+%
+% refs.bib entries to add (skeleton placeholders in refs.bib):
+%   kang2018sasrec, sun2019bert4rec, li2020tisasrec, zhang2019fdsa,
+%   zhou2020s3rec, ferrari2019, sun2020daisy, zhao2021recbole,
+%   akiba2019optuna.
+% =====================================================================
+\section{Related Work}
+TODO: related-work prose across the three buckets above.

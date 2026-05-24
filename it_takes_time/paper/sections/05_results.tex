@@ -1,0 +1,59 @@
+% Section: Results
+% =====================================================================
+% DESCRIPTION
+% -----------
+% Single primary table + one figure + three narrative paragraphs (one
+% per dataset cluster). Do NOT bury the negative cells in an appendix —
+% the pattern (worst where signal is richest) IS the story.
+%
+%   Main table (auto-generate via tables/main_results.tex from
+%   notebooks/1_significance.ipynb cell 11 [combined] / cell 12 [robust]):
+%     Rows  : 7 datasets (grouped: ML / Amazon / Steam).
+%     Cols  : {Add, Mul, Val} x {NDCG@10, Recall@10, MRR@10}.
+%     Cells : rel%Δ vs SASRec, paired-t stars (*/**/***), per-seed
+%             sign indicator "+k/-k/n", and an asterisk if the pooled
+%             bootstrap CI excludes 0.
+%     Use \best / \second macros (lifted from
+%     docs/protocol_neural_networks.tex) to highlight the (rare)
+%     significant cells in both directions — green for positive, red
+%     for negative.
+%
+%   Figure 1 (per-user bootstrap forest plot): one row per
+%   (dataset, variant) for NDCG@10. Centre = mean per-user diff,
+%   whiskers = 95% bootstrap CI. The visual punchline: most CIs cross
+%   zero or sit on the wrong side of it. Render this in Phase 2 of
+%   writing from the per_user/*.parquet files.
+%
+% Narrative paragraphs (~one each):
+%   P1 — MovieLens (ML-100K-iar, ML-1M):
+%        Every cell n.s. at alpha=0.05 across NDCG@10 / Recall@10;
+%        ml-100k shows ~5-8% relative drops (noisy at this scale, n=5).
+%        Conclusion: discrete low-entropy rating intensity does
+%        nothing — neither helping nor robustly hurting.
+%
+%   P2 — Amazon (Digital Music, Office Products):
+%        Mixed and small. The ONE positive-significant cell in the
+%        entire campaign: IA-SASRec-Add on Amazon-Office-Products
+%        MRR@10 (+3.6%, p=0.025). NDCG@10 also +2.5% but only p=0.083.
+%        Mul on Digital Music is significantly WORSE on NDCG@10
+%        (-2.7%, p=0.012) and Recall@10 (-2.9%, p=0.021). Val on
+%        Office Products is significantly worse (Recall@10 -6.1%,
+%        p=0.005). Treat the one positive as a single-cell
+%        observation, not a finding — it is exactly the kind of result
+%        a triple-gate protocol is designed to NOT over-claim.
+%
+%   P3 — Steam (3k / 8k / 15k):
+%        The "hypothesis-killer" cluster. Every variant negative on
+%        NDCG@10 across all three subset sizes. Steam-3k Mul -9.5%
+%        (p=0.027). Steam-15k Mul -5.0% (p=0.009), Val -6.2%
+%        (p=0.005), Recall@10 -4.5% / -5.1% with p<0.01. The
+%        degradation is the OPPOSITE of the intensity-richness
+%        prediction and is the cleanest signal of method failure in
+%        the campaign.
+%
+% Cross-reference into §6 for the mechanism analysis.
+% =====================================================================
+\section{Results}
+TODO: insert main results table (tables/main_results.tex), forest plot
+(figures/forest_ndcg10.pdf), and three narrative paragraphs (MovieLens,
+Amazon, Steam) per the description above.

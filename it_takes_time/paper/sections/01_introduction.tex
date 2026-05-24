@@ -1,0 +1,48 @@
+% Section: Introduction
+% =====================================================================
+% DESCRIPTION
+% -----------
+% Goal: motivate the intensity-injection hypothesis, state the gap,
+% declare a negative result honestly, and preview the Steam paradox so
+% the reader knows the paper has a mechanism story (not just a null).
+%
+% Paragraph plan (~5 paragraphs):
+%   P1. Sequential recommenders treat history as a token stream;
+%       attention models (SASRec, BERT4Rec) dominate. But every
+%       interaction is collapsed to a binary "happened" — the
+%       underlying *intensity* (rating, hours played, dwell time) is
+%       discarded. That is a lot of supervised signal thrown away.
+%   P2. A natural hypothesis: re-introducing per-interaction intensity
+%       into self-attention should help, in proportion to how rich the
+%       intensity signal is. Steam playtime (continuous, heavy-tailed)
+%       should help more than 5-star ratings (discrete, low entropy).
+%   P3. We test this with three drop-in modifications to SASRec
+%       (Add / Mul / Val), each adding ONE learnable scalar per layer
+%       so that lambda=0 collapses exactly to SASRec — the model can
+%       opt out if intensity is uninformative.
+%   P4. Headline finding: the hypothesis fails. Across 7 datasets and
+%       5 seeds per (dataset, model), no variant achieves a robust
+%       NDCG@10 / Recall@10 improvement, and the failure is most
+%       pronounced on Steam — the OPPOSITE of what the hypothesis
+%       predicts. We confirm this with paired t-tests, per-user paired
+%       bootstrap CIs, and per-seed sign-agreement.
+%   P5. Mechanism: learned lambda stays high (0.55-0.99 on Steam) even
+%       as metrics degrade, so the "opt-out" gate fails to fire. The
+%       paper's contribution is the documented failure together with
+%       the lambda-vs-Delta calibration evidence that simple
+%       per-layer scalar gating is too coarse for heavy-tailed
+%       intensities.
+%
+% Reusable prose: ia_sasrec.md §1 (motivation paragraphs) — lift but
+% retune the tone from "we propose" to "we hypothesised".
+%
+% Contributions bullet list at end of section:
+%   - Three IA-SASRec variants with explicit lambda escape hatch.
+%   - A 7-dataset, 5-seed evaluation with a triple-gate significance
+%     protocol (paired t + per-user bootstrap + per-seed sign agreement).
+%   - A negative result with mechanism analysis via the learned lambda.
+%   - Released code, checkpoints, and per-user metric parquets for full
+%     reproducibility.
+% =====================================================================
+\section{Introduction}
+TODO: introduction prose per the plan above.

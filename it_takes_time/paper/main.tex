@@ -1,0 +1,45 @@
+% =====================================================================
+%  IA-SASRec negative-result paper — skeleton
+%  Generic article.cls preamble; swap documentclass per target venue.
+%  Build:  make pdf
+%  Word:   make docx     (requires pandoc >= 3.0)
+% =====================================================================
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[round]{natbib}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!50!black, citecolor=blue!50!black, urlcolor=blue!50!black}
+\graphicspath{{figures/}}
+
+% Lifted from docs/protocol_neural_networks.tex — best/second-best result highlighting.
+\newcommand{\best}[1]{\textbf{#1}}
+\newcommand{\second}[1]{\underline{#1}}
+
+\title{Intensity-Aware Self-Attention for Sequential Recommendation:\\
+A Negative Result and a Mechanism Analysis}
+\author{Anar Shyraliiev\\
+\texttt{ash@playa.tech}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_method}
+\input{sections/04_experimental_setup}
+\input{sections/05_results}
+\input{sections/06_analysis}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
