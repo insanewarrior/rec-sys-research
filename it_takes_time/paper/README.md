@@ -55,11 +55,9 @@ pipeline.
 1. **Run the λ ∈ {0, 1, learned} ablation** on at least Steam-15k and
    Amazon-Office-Products. Flagged in `06_analysis.tex` §6.3 as
    required before submission — directly tests the escape-hatch claim.
-2. **Complete ML-1M seed2024** so all datasets have n=5 seeds. Flagged
-   in `04_experimental_setup.tex` §4.2.
-3. **Populate `refs.bib`** with full BibTeX records for the nine
+2. **Populate `refs.bib`** with full BibTeX records for the nine
    placeholder keys listed in the file header.
-4. **Generate `tables/main_results.tex`** by adding an export cell to
+3. **Generate `tables/main_results.tex`** by adding an export cell to
    `1_significance.ipynb` that emits the combined seed+bootstrap view
    in LaTeX (`.to_latex(...)` with the `\best`/`\second` decorators).
-5. **Decide target venue** and swap `\documentclass` accordingly.
+4. **Decide target venue** and swap `\documentclass` accordingly.
