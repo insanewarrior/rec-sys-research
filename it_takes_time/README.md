@@ -1,13 +1,14 @@
 # It Takes Time
 
 Sequential-recommender benchmark on **MovieLens-1M**, **MovieLens-100K**,
-**Amazon Digital Music 5-core**, and **Amazon Office Products 5-core**,
+**Amazon Digital Music 5-core**, **Amazon Office Products 5-core**, and
+**Steam Reviews** (3k / 8k / 15k user subsamples, hours-played as intensity),
 comparing SOTA
 baselines (SASRec, BERT4Rec, GRU4Rec, NARM, FPMC, Pop, BPR, ItemKNN) against
 three new **IA-SASRec** (Intensity-Aware SASRec) variants that inject
-per-interaction strength (rating) directly into the self-attention
-mechanism. One reproducible methodology, **Optuna** HPO, on-disk
-resumability, full pytest coverage.
+per-interaction strength (rating or hours played) directly into the
+self-attention mechanism. One reproducible methodology, **Optuna** HPO,
+on-disk resumability, full pytest coverage.
 
 ## Why
 
@@ -70,7 +71,7 @@ it_takes_time/
 │       ├── __init__.py         # MODEL_REGISTRY, search spaces
 │       └── variants/
 │           └── ia_sasrec.py    # IASASRecBase + Add/Mul/Val + IAMultiHeadAttention
-├── tests/                      # 27 pytest tests (math, registry, runner, data)
+├── tests/                      # pytest suite (math, registry, runner, data, multi-seed, significance)
 └── notebooks/
     └── 0_benchmark.ipynb   # loops over all datasets × full registry
 ```
@@ -92,8 +93,11 @@ model); ML-1M with SASRec ~5 min/run on a modern laptop.
 ## Run
 
 Open `notebooks/0_benchmark.ipynb` and run top-to-bottom. It loops over
-`["ml-1m", "ml-100k", "amazon-digital-music", "amazon-office-products"]` ×
-the full model registry (including the three IA-SASRec variants).
+`["ml-1m", "ml-100k", "amazon-digital-music", "amazon-office-products",
+"steam-3k", "steam-8k", "steam-15k"]` × the full model registry (including
+the three IA-SASRec variants). A companion notebook
+`notebooks/1_significance.ipynb` runs paired significance tests across the
+per-seed results produced by the main benchmark.
 
 Knobs (env vars):
 
@@ -167,7 +171,7 @@ data-pipeline format checks.
 - `results/checkpoints/` — RecBole-saved best-model `.pth` files.
 
 To re-run a single model from scratch:
-`from runner import invalidate_cache; invalidate_cache("ml-100k-iar", "SASRec")`
+`from runner import invalidate_cache; invalidate_cache("ml-100k", "SASRec")`
 (this clears *all* per-seed files for that model), optionally also delete
 its HPO DB, then re-run the benchmark cell.
 
@@ -183,10 +187,13 @@ Configured in [src/config.py](src/config.py):
 ```python
 DEFAULT_SEEDS = [2020, 2021, 2022, 2023, 2024]
 SEEDS_PER_DATASET = {
-    "ml-1m": 3,                       # slowest dataset, 3 seeds
-    "ml-100k-iar": 5,                 # fast, 5 seeds
+    "ml-1m": 5,
+    "ml-100k": 5,
     "amazon-digital-music": 5,
     "amazon-office-products": 5,
+    "steam-3k": 5,
+    "steam-8k": 5,
+    "steam-15k": 5,
 }
 SEEDS_PER_MODEL_DATASET = {}          # optional per-(ds, model) override
 ```
@@ -219,9 +226,12 @@ See section 7 of the notebook, or use IA-SASRec as a worked example:
 | Key                       | Source                                                  | Intensity signal | Notes                                          |
 |---------------------------|---------------------------------------------------------|------------------|------------------------------------------------|
 | `ml-1m`                   | GroupLens HTTP zip                                      | Rating 1–5       | Native unix timestamps                         |
-| `ml-100k`                 | GroupLens HTTP zip                                      | Rating 1–5       | Native unix timestamps                         |
+| `ml-100k`             | GroupLens HTTP zip                                      | Rating 1–5       | Native unix timestamps                         |
 | `amazon-digital-music`    | snap.stanford.edu JSON-gz (McAuley 2014 5-core)         | Rating 1–5       | ~5.5k users × ~3.6k items × ~64k reviews       |
 | `amazon-office-products`  | snap.stanford.edu JSON-gz (McAuley 2014 5-core)         | Rating 1–5       | ~4.9k users × ~2.4k items × ~53k reviews       |
+| `steam-3k`                | cseweb.ucsd.edu Steam Reviews JSON-gz                   | Hours played     | 3 000-user subsample (seed 2020); `%Y-%m-%d` timestamps |
+| `steam-8k`                | cseweb.ucsd.edu Steam Reviews JSON-gz                   | Hours played     | 8 000-user subsample (seed 2020)               |
+| `steam-15k`               | cseweb.ucsd.edu Steam Reviews JSON-gz                   | Hours played     | 15 000-user subsample (seed 2020)              |
 
 To add another: append an entry to `DATASETS` in `src/config.py` with its
 download spec, intensity column, and any pre-filters — `data.py` handles

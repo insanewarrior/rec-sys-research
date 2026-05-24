@@ -20,7 +20,7 @@ user engaged with each item:
 - MovieLens: explicit rating in `{1, 2, 3, 4, 5}`
 - Amazon reviews: explicit rating in `{1, 2, 3, 4, 5}` per review (with native unix timestamps)
 - News / e-commerce: dwell time, click frequency, purchase value
-- Hours-played / listen counts: implicit but unbounded in `[0, ∞)` (out of scope here — the public hours-played benchmarks we surveyed all lack timestamps)
+- Hours-played / listen counts: implicit but unbounded in `[0, ∞)` — covered here via Steam Reviews (McAuley, cseweb.ucsd.edu), which ships per-review `hours` and `date` so it drives a sequential model honestly
 
 A literature sweep confirmed that while there is extensive work on optimizing
 SASRec hyperparameters and on handling implicit feedback at the loss / sampling
@@ -316,23 +316,29 @@ serves every model — apples-to-apples comparison.
 
 | Dataset | Intensity signal | Source | Notes |
 |---------|------------------|--------|-------|
-| **ml-1m**                    | Explicit rating 1–5 | GroupLens HTTP zip                                | Native unix timestamps; downloads automatically |
-| **ml-100k**                  | Explicit rating 1–5 | GroupLens HTTP zip                                | Native unix timestamps; ~10× smaller than ml-1m |
-| **amazon-digital-music**     | Explicit rating 1–5 | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~5.5k users × ~3.6k items × ~64k reviews; native `unixReviewTime` |
-| **amazon-office-products**   | Explicit rating 1–5 | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~4.9k users × ~2.4k items × ~53k reviews; native `unixReviewTime` |
+| **ml-1m**                    | Explicit rating 1–5  | GroupLens HTTP zip                                | Native unix timestamps; downloads automatically |
+| **ml-100k**              | Explicit rating 1–5  | GroupLens HTTP zip                                | Native unix timestamps; ~10× smaller than ml-1m |
+| **amazon-digital-music**     | Explicit rating 1–5  | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~5.5k users × ~3.6k items × ~64k reviews; native `unixReviewTime` |
+| **amazon-office-products**   | Explicit rating 1–5  | snap.stanford.edu JSON-gz (McAuley 2014 5-core)   | ~4.9k users × ~2.4k items × ~53k reviews; native `unixReviewTime` |
+| **steam-3k**                 | Hours played (float) | cseweb.ucsd.edu Steam Reviews JSON-gz             | 3 000-user subsample (seed 2020); `%Y-%m-%d` per-review timestamps |
+| **steam-8k**                 | Hours played (float) | cseweb.ucsd.edu Steam Reviews JSON-gz             | 8 000-user subsample (seed 2020); shares raw download with steam-3k/15k |
+| **steam-15k**                | Hours played (float) | cseweb.ucsd.edu Steam Reviews JSON-gz             | 15 000-user subsample (seed 2020); largest continuous-intensity benchmark |
 
-All four datasets are small-to-medium after `min_user_inter ≥ 5`,
+All datasets are small-to-medium after `min_user_inter ≥ 5`,
 `min_item_inter ≥ 5` filtering — fast enough for full Optuna HPO sweeps on
-a single GPU within a coffee break (and tolerable on CPU).
+a single GPU within a coffee break (and tolerable on CPU). The four
+rating-based datasets cover bounded explicit feedback; the three Steam
+subsamples cover continuous implicit feedback (hours played), letting the
+ablation cleanly separate the two regimes.
 
 ---
 
 ## 7. Running the benchmark
 
 ```bash
-# One-time: invalidate cached baseline results since the .inter schema
-# changed (added the intensity column). After this, baselines retrain on
-# the new file so the comparison stays apples-to-apples.
+# One-time: invalidate cached baseline results if the .inter schema
+# changed. After this, baselines retrain on the new file so the comparison
+# stays apples-to-apples.
 python -c "from runner import invalidate_cache; invalidate_cache('ml-100k')"
 
 # Then open the notebook — IA-SASRec variants are in the default registry,
@@ -347,7 +353,11 @@ from data import prepare_recbole_dataset
 from hpo import run_optuna
 from runner import train_and_eval
 
-for ds in ["ml-1m", "ml-100k", "amazon-digital-music", "amazon-office-products"]:
+for ds in [
+    "ml-1m", "ml-100k",
+    "amazon-digital-music", "amazon-office-products",
+    "steam-3k", "steam-8k", "steam-15k",
+]:
     prepare_recbole_dataset(ds)
     for name in ["SASRec", "IA-SASRec-Add", "IA-SASRec-Mul", "IA-SASRec-Val"]:
         hpo = run_optuna(ds, name)
@@ -366,7 +376,7 @@ is passed or `invalidate_cache` removed the JSON first.
 pytest -q
 ```
 
-**27 tests**, covering:
+The pytest suite (across `tests/test_*.py`) covers:
 
 - `normalise_intensity` ranges and NaN-safety for every mode
 - `IAMultiHeadAttention` math:
@@ -384,6 +394,11 @@ pytest -q
 - Data: 4-column `.inter` written correctly on tiny synthetic fixtures for
   each download path (HTTP zip, gzip-JSON, Kaggle); no network or Kaggle auth
   required for the tests
+- Multi-seed final-fit aggregation (`tests/test_multi_seed.py`) and paired
+  significance helpers (`tests/test_paired_significance.py`) — locks in the
+  per-seed JSON schema and the seed-resolution logic in `seeds_for(...)`
+- Training-curve capture (`tests/test_curve_capture.py`) and dataset-naming
+  hygiene (`tests/test_dataset_naming.py`)
 
 ---
 
@@ -402,20 +417,22 @@ pytest -q
    each corresponds to one of the three algebraic positions in the attention
    expression where `w` can be inserted. Derive equations (2)–(4) from
    equation (1).
-4. **Experiments.** Four datasets, all with bounded explicit-rating intensity
-   and native unix timestamps: ML-1M, ML-100K, Amazon Digital Music 5-core,
-   Amazon Office Products 5-core. Two domains (movies, products) × two scales
-   let us separate domain effects from data-volume effects. All 11 models × 4
-   datasets. Optuna TPE HPO with NDCG@10 as the primary metric. Eval:
-   full-vocabulary scoring → HR / NDCG / MRR / Recall / Precision @ {10, 20,
-   50, 100}.
+4. **Experiments.** Seven datasets spanning two intensity regimes: four with
+   bounded explicit-rating intensity and native unix timestamps (ML-1M,
+   ML-100K-IAR, Amazon Digital Music 5-core, Amazon Office Products 5-core),
+   plus three Steam Reviews subsamples (3k / 8k / 15k users) carrying
+   continuous hours-played intensity. The split lets us separate domain
+   effects, data-volume effects, and bounded-vs-continuous intensity. Full
+   model registry × all datasets. Optuna TPE HPO with NDCG@10 as the primary
+   metric. Eval: full-vocabulary scoring → HR / NDCG / MRR / Recall /
+   Precision @ {10, 20, 50, 100}. Final fit repeated across 5 seeds per
+   (dataset, model) for mean ± std and paired significance tests.
 5. **Ablation: variants × normalisation.**
    `{Add, Mul, Val} × {log1p_minmax, minmax, zscore, none}` — a 3×4 table per
    dataset. Demonstrates that (a) normalisation is load-bearing even on
    bounded rating scales, and (b) the optimal variant depends on the dataset
-   (hypothesis: `Add` wins on the bounded rating regimes here; `Mul` would
-   favour noisy long-tail signals if added later via a hours-played-style
-   dataset; `Val` is a safe default).
+   (hypothesis: `Add` wins on the bounded rating regimes; `Mul` favours the
+   heavy-tailed Steam hours-played signal; `Val` is a safe default).
 6. **Discussion.** Per-dataset winner analysis; when each variant helps and
    why; learned-$\lambda$ analysis (does the model shrink $\lambda$ toward
    $0$ on datasets where intensity is uninformative, and grow it elsewhere?);
@@ -435,11 +452,12 @@ pytest -q
 - **Reproducibility.** Optuna studies persist to SQLite under `results/hpo/`;
   individual model results persist to JSON under `results/eval/`. Both layers
   are resumable: kill and re-run the notebook freely.
-- **No hours-played-style benchmark.** The popular hours-played datasets
-  (Steam-200k, HetRec LastFM-2K's aggregated listen counts) ship without
-  per-event timestamps, so they can't drive a sequential model honestly.
-  A future swap to McAuley's Steam Reviews (which has `unix_timestamp`
-  and hours per review) could revisit hours-played-as-intensity properly.
+- **Steam covers continuous implicit feedback.** McAuley's Steam Reviews
+  (cseweb.ucsd.edu) ships per-review `date` and `hours`, so it drives a
+  sequential model honestly. We include three subsamples (3k / 8k / 15k
+  users, fixed seed 2020) to study how IA-SASRec scales with data volume
+  on a heavy-tailed continuous intensity signal — distinct from the
+  bounded 1–5 rating signal on the MovieLens / Amazon datasets.
 - **`λ` per layer.** Each of `n_layers` IA-SASRec transformer blocks (for
   all three variants) has its own learnable `λ`, exposed at training end via
   `IASASRecBase.get_intensity_params()` and persisted in
