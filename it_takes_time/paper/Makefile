@@ -15,6 +15,7 @@ docx:
 	    --to=docx \
 	    --citeproc \
 	    --bibliography=refs.bib \
+	    --csl=apa-numeric.csl \
 	    --output=paper.docx
 
 clean:

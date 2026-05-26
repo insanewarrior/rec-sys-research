@@ -3110,7 +3110,7 @@
     <bcf:citekey order="31" intorder="1">liu2021asrep</bcf:citekey>
     <bcf:citekey order="32" intorder="1">ferrari2019</bcf:citekey>
     <bcf:citekey order="32" intorder="2">sun2020daisy</bcf:citekey>
-    <bcf:citekey order="33" intorder="1">rendle2019baselines</bcf:citekey>
+    <bcf:citekey order="33" intorder="1">rendle2020baselines</bcf:citekey>
     <bcf:citekey order="34" intorder="1">krichene2020sampled</bcf:citekey>
     <bcf:citekey order="35" intorder="1">sun2019bert4rec</bcf:citekey>
     <bcf:citekey order="36" intorder="1">petrov2022replicability</bcf:citekey>
