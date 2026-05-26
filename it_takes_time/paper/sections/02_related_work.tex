@@ -36,9 +36,9 @@ in the spirit of BERT~\citep{devlin2019bert}. Both treat each
 historical interaction as a binary presence signal: the item identity
 and its position are everything the model sees.
 TiSASRec~\citep{li2020tisasrec} is the closest prior work; it injects
-relative time gaps between adjacent interactions directly into the
-attention computation through a learned bias on the absolute time
-delta. The architectural surface is the same as IA-SASRec, a learned
+the relative time intervals between every pair of interactions in the
+sequence directly into the attention computation through a learned bias
+on the time delta. The architectural surface is the same as IA-SASRec, a learned
 modifier applied to attention scores, but the injected signal is
 different: TiSASRec injects temporal spacing, a structural feature of
 the sequence; IA-SASRec injects interaction strength, which varies
@@ -105,8 +105,9 @@ FMLP-Rec~\citep{zhou2022fmlp} replaces attention with a
 filter-enhanced MLP to dampen frequency noise;
 STOSA~\citep{fan2022stosa} replaces point-attention with stochastic
 Gaussian distributions and a Wasserstein-distance ranker;
-LightSANs~\citep{fan2021lightsans} restricts attention to a low-rank
-subspace to prevent the optimiser from exploiting shortcuts; and
+LightSANs~\citep{fan2021lightsans} decomposes self-attention into a
+low-rank subspace for efficiency, and the resulting bottleneck also
+constrains the configurations the optimiser can exploit; and
 CORE~\citep{hou2022core} diagnoses a representation inconsistency
 between sequence encoding and the final dot-product ranker. A second
 strand of regularization tackles representation degeneration
