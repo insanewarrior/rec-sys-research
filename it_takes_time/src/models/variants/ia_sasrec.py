@@ -12,7 +12,7 @@ SASRec at ``lambda = 0``:
 * ``IASASRecMul``  multiplicative logit scaling:
       softmax((QK^T/sqrt(d)) * (1 + lambda * (w_k - 1))) V
 
-* ``IASASRecVal``  post-softmax key reweighting:
+* ``IASASRecVal``  post-softmax attention reweighting:
       (softmax(QK^T/sqrt(d)) * (1 + lambda * (w_k - 1))) V
 
 The intensity vector reaches the model via RecBole's automatic sequence
@@ -172,8 +172,10 @@ class IAMultiHeadAttention(nn.Module):
             # Soft attention reweighting by key-position intensity, applied to
             # the post-softmax probs *before* the matmul with V. λ=0 → vanilla;
             # λ=1 → each key's attention probability scales by its intensity.
-            # No renormalisation — the output dense layer absorbs scale, same
-            # as how masked/sparse attention is typically handled.
+            # Equivalently A·(D_λ·V) since the factor depends only on k — hence
+            # the name "Val". No renormalisation: the post-attention LayerNorm
+            # in the residual block below normalises any scale inflation,
+            # while the direction change in the output vector survives.
             w_k = intensity[:, None, None, :]
             probs = probs * (1.0 + self.intensity_lambda * (w_k - 1.0))
 

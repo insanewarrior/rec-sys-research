@@ -118,19 +118,27 @@ $\lambda_{mul} = 1$ with all-zero intensity over visible keys, all attention
 logits become zero and the softmax outputs a uniform distribution —
 verified in `test_mul_lambda_one_collapses_zero_intensity`.
 
-### 3.3 `IA-SASRec-Val` — post-softmax key reweighting
+### 3.3 `IA-SASRec-Val` — post-softmax attention reweighting
 
 **Idea.** Leave the attention probabilities to be computed by the standard
-softmax, then **reweight each key's contribution by its intensity** before
-aggregating values. Functionally this is "soft attention reweighting":
-intensity acts as a per-key gain applied to the attention distribution.
+softmax, then **reweight each key position's attention probability by its
+intensity** before aggregating values. Functionally this is "soft attention
+reweighting": intensity acts as a per-key gain applied to the attention
+distribution. Because the gain depends only on $k$, the operation is
+algebraically equivalent to pre-scaling each value vector $V_k$ by its
+intensity — $\big(A \odot (1{+}\lambda(M_W{-}1))\big) V = A\,(D_\lambda V)$
+— which is what the `Val` name refers to: scaling acts at the value-mixing
+stage of attention, not on the `K` matrix.
 
 $$ \text{Attention}_{val}(Q, K, V) = \left( \text{softmax}\left(\frac{QK^T}{\sqrt{d}} + M\right) \odot \left(1 + \lambda_{val} (M_W - 1)\right) \right) V \tag{4} $$
 
 $\lambda_{val}$ is a learnable scalar per layer (initialised to $1.0$),
 analogous to $\lambda_{mul}$. We deliberately do **not** renormalise the
-reweighted distribution — the dense output projection absorbs scale, which
-is the standard treatment in masked / sparse attention layers.
+reweighted distribution — any magnitude inflation introduced by
+$1{+}\lambda(w_k{-}1) > 1$ is absorbed by the post-attention layer
+normalisation in the residual block (`self.LayerNorm(out + input_tensor)`),
+while the intensity-driven *direction* change in the output vector — the
+part that actually re-ranks candidates — passes through unaffected.
 
 **Behaviour.** Unlike Mul (which acts on raw logits and can be diluted by
 the softmax normalisation), Val acts directly on the attention probabilities
@@ -165,7 +173,7 @@ contribute zero to the output regardless of the reweighting.
 |---------|------------------------|------------------|------------------|
 | `Add`   | additive logit bias: $QK^T/\sqrt{d} + \lambda M_W$              | vanilla SASRec | logits offset by $w$ |
 | `Mul`   | multiplicative logit scale: $(QK^T/\sqrt{d}) \odot (1 + \lambda (M_W - 1))$ | vanilla SASRec | original $(QK^T/\sqrt{d}) \odot M_W$ |
-| `Val`   | post-softmax key reweighting: $(\text{softmax}(\cdot) \odot (1 + \lambda (M_W - 1)))\, V$ | vanilla SASRec | $\text{softmax}(\cdot)$ scaled by $w$ per key |
+| `Val`   | post-softmax attention reweighting: $(\text{softmax}(\cdot) \odot (1 + \lambda (M_W - 1)))\, V$ | vanilla SASRec | $\text{softmax}(\cdot)$ scaled by $w$ per key |
 
 All three variants share a single design discipline: **a learnable
 $\lambda$ that collapses the variant to vanilla SASRec at $\lambda = 0$**.

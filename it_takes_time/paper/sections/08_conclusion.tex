@@ -4,12 +4,12 @@
 % -----------
 % ~100 words. Three sentences:
 %   (1) Recap: we tested three drop-in intensity-injection variants of
-%       SASRec across 7 datasets and 5 seeds with a triple-gate
+%       SASRec across 7 datasets and 5 seeds with a dual-criterion
 %       significance protocol; none deliver a robust improvement, and
 %       the failure is largest on the dataset with the strongest
 %       intensity signal.
 %   (2) Lesson: a single per-layer scalar lambda is insufficient as an
-%       escape hatch — the learned lambda stays large where the model
+%       fallback — the learned lambda stays large where the model
 %       is being hurt, so the architectural opt-out predicted at
 %       lambda=0 is not realised in practice.
 %   (3) Future directions worth trying instead:
@@ -23,5 +23,37 @@
 %   per-user metrics are released.
 % =====================================================================
 \section{Conclusion}
-TODO: 100-word recap + lesson + three future-work pointers per the
-plan above.
+\label{sec:conclusion}
+
+We tested three drop-in intensity-injection variants of SASRec
+(Add / Mul / Val), each gated by a learnable per-layer scalar
+$\lambda$ initialised to $1.0$ so that $\lambda{=}0$ collapses the
+variant exactly to the baseline. Across seven datasets and five seeds
+under a dual-criterion significance protocol with a per-seed
+stability check, none of the variants
+delivers a robust improvement, and the failure is largest on Steam,
+the dataset with the strongest, most continuous intensity signal.
+
+The mechanism is sharper than ``the hypothesis is wrong.'' The
+learned $\lambda$ adapts freely on the datasets where intensity is
+not informative (down to $0.07$ on ML-1M Val) yet stays at $0.55$--$0.99$
+on Steam, where the variants are at their worst. The architectural
+off-switch predicted at $\lambda{=}0$ is therefore available in principle
+but not realised in practice: cross-entropy gradients do not steer
+$\lambda$ back to zero even when generalisation degrades. A single
+per-layer scalar is too limited a control for intensity injection.
+
+Three concrete directions worth trying instead of scaling $\lambda$.
+First, token-level intensity gating: replace the scalar
+$\lambda$ with a per-position learned gate $\lambda(w_k)$, so the
+model can mute specific intensity values (e.g.\ the $100$-hour Steam
+tail) while keeping the moderate range. Second,
+mixture-of-experts on intensity bins: discretise intensity by
+post-normalisation percentile and route attention through expert
+heads selected by bin, decoupling ``head specialised on high
+intensity'' from ``head ignoring intensity.'' Third, intensity
+as a side-token: rather than modifying the attention computation,
+insert an intensity-derived token at each position of the sequence
+and let standard self-attention decide whether to look at it; this
+moves the optimisation signal into the embedding space where existing
+SASRec dynamics are well understood.

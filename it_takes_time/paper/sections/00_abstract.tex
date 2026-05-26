@@ -20,11 +20,39 @@
 %   5. Mechanism: learned lambdas remain large (0.5-1.0) precisely where
 %      the model is being hurt; the per-layer scalar gate cannot opt out
 %      of harmful signal. We argue this rules out simple gating as a
-%      sufficient escape hatch and outline what intensity-injection
+%      sufficient fallback and outline what intensity-injection
 %      designs should look like instead.
 % Lift-from: ia_sasrec.md §1; numeric results re-confirmed against
 %            results/eval/*.json.
 % =====================================================================
-\begin{abstract}
-TODO: 150-word abstract following the five-beat structure above.
-\end{abstract}
+{\small\noindent Sequential recommenders based on self-attention discard a
+rich supervised signal: per-interaction intensity (a $5$-star
+rating, hours played, dwell time, purchase value). We hypothesised
+that re-introducing intensity into the attention computation should
+improve top-$k$ accuracy in proportion to how informative the
+underlying signal is. We test the hypothesis with three drop-in
+modifications of SASRec (IA-SASRec-Add, IA-SASRec-Mul, IA-SASRec-Val),
+corresponding to the three algebraic positions where intensity
+can be threaded into the attention expression. Each variant adds a
+single learnable scalar $\lambda$ per attention layer, designed so
+that $\lambda{=}0$ recovers vanilla SASRec exactly: the model is a
+strict super-set of the baseline. Across seven datasets (MovieLens
+$\times2$, Amazon $\times2$, Steam $\times3$) and five seeds per
+configuration, evaluated under a dual-criterion significance protocol with a per-seed stability check
+(seed-level paired $t$ and per-user paired bootstrap with $B{=}2{,}000$,
+guarded by a per-seed CI sign-majority on the bootstrap), no variant
+achieves a robust
+improvement on NDCG@10, Recall@10, or MRR@10 anywhere. The pattern
+inverts the hypothesis: Steam (the dataset with the richest
+intensity signal) hosts the largest significant degradations (up to
+$-9.5\%$ NDCG@10, $p<0.05$). Mechanism analysis through the learned
+$\lambda$ explains the failure: $\lambda$ adapts freely on datasets
+where intensity is not informative (down to $0.07$ on ML-1M) but stays
+at $0.55$--$0.99$ on Steam, where the variants are at their worst.
+The architectural ``off-switch at $\lambda{=}0$'' is available in
+principle but not realised in practice. We argue that a single
+per-layer scalar gate is too limited a control for intensity
+injection, and outline three concrete designs that target this
+limitation.
+\par\smallskip
+\noindent\textbf{Keywords:} sequential recommendation; self-attention; SASRec; intensity-aware attention; reproducibility; significance testing; negative result; bootstrap confidence interval; mechanism analysis.}

@@ -20,7 +20,7 @@
 %   7.2 What the result says about benchmarking practice.
 %       Under a single-seed protocol with no per-user CIs, the
 %       Amazon-Office-Products IA-SASRec-Add MRR@10 +3.6% (p=0.025)
-%       would be the headline. Our triple-gate protocol surfaces it
+%       would be the headline. Our dual-criterion protocol surfaces it
 %       as a single-cell observation: it does not generalise across
 %       datasets or even across metrics on the same dataset (the
 %       same configuration is n.s. on NDCG@10 and Recall@10). This
@@ -38,12 +38,91 @@
 %         best_params). A richer normalisation search might help on
 %         Steam; we acknowledge this and leave it as future work.
 %       - The lambda=0 ablation in §6.3 has not been run; without it,
-%         the "escape hatch fails" claim rests on observing high
+%         the "fallback fails" claim rests on observing high
 %         learned lambda + degraded metrics, but cannot exclude the
 %         counter-narrative "lambda=0 would also have degraded".
 %       - Five-seed paired t is conservative (df=4); we mitigate with
 %         the per-user bootstrap, which has thousands of units.
 % =====================================================================
 \section{Discussion}
-TODO: 7.1 intensity as signal, 7.2 benchmarking-practice lesson, 7.3
-threats to validity.
+\label{sec:discussion}
+
+\subsection{Empirical validation of the decoupled-fusion hypothesis}
+
+Our results directly confirm the structural warnings raised by the
+decoupled-fusion literature (NOVA~\citep{liu2021novabert},
+DIF-SR~\citep{xie2022difsr}). Because IA-SASRec forces an invasive,
+mid-attention fusion through a shared scalar gate, it sits in the
+architectural region these works predict will fail. The empirical
+verdict matches the prediction: across the $252$ (variant, metric,
+dataset, cutoff) cells we test (3 variants $\times$ 3 metrics
+$\times$ 7 datasets at $k\in\{10, 20, 50, 100\}$), not a single cell
+yields a robust improvement, and the largest, cleanest degradations
+appear on Steam, the dataset with the strongest and most continuous
+intensity signal, where representation degeneration of the kind
+flagged by~\citep{fan2022stosa,qiu2022duorec} is most likely to bite.
+
+\subsection{Intensity is not free supervision}
+
+Much of the side-information literature for sequential recommenders
+operates under an implicit additivity assumption: any extra channel
+threaded into the model can only add information, since the model
+``can ignore it.'' Our results rule out that assumption for
+per-interaction intensity under scalar gating. Once the optimiser has
+settled into a non-zero $\lambda$, the gradient with respect to
+training-set cross-entropy does not point back toward $\lambda{=}0$,
+even when held-out generalisation degrades. The channel carries
+negative information in the sense that fitting it as instructed
+makes the model worse. ``The model can ignore it'' is a claim about
+expressivity, not about what the optimiser will actually do.
+
+\subsection{Lesson for benchmarking practice}
+
+Under a single-seed protocol without per-user confidence intervals,
+the headline of this paper would have been ``IA-SASRec-Add improves
+MRR@10 on Amazon-Office Products by $3.6\%$ ($p{=}0.025$).'' The same
+configuration is non-significant on the other two metrics of the same
+dataset and on every other dataset, but no single-seed table would
+have surfaced that. Our dual-criterion protocol flags the cell as
+non-robust automatically; this is exactly the failure mode that prior
+reproducibility critiques~\citep{ferrari2019,sun2020daisy} have argued
+is common in neural recommender benchmarking. We consider this a
+working example of the protocol
+doing its job, and we argue that it should be the default rather than
+the exception when reporting small-sample sequential-recommender
+results.
+
+\subsection{Threats to validity}
+
+\paragraph{HPO budget.}
+We use the same $25$-trial Optuna budget for SASRec and for each
+IA-SASRec variant, with the same backbone search space and an extra
+categorical for the normalisation choice on IA-SASRec. The variants
+therefore receive strictly more hyperparameter freedom than
+SASRec at no extra cost. The selected configurations are not
+systematically deeper or wider for SASRec than for the variants, so
+``under-tuned'' is not a plausible explanation of the degradations.
+
+\paragraph{Normalisation family.}
+Optuna selects a single normalisation per (dataset, model). A richer
+parametric normalisation (e.g.\ learned bin boundaries on the playtime
+quantile) might rescue Steam; we leave this to future work and flag
+it as the most likely route to ``intensity helps after all'' on
+heavy-tailed signals.
+
+\paragraph{No controlled $\lambda{=}0$ run.}
+We did not pin $\lambda{=}0$ as a control, so the falsification of the
+fallback in our analysis rests on observed
+dynamics (large learned $\lambda$ coexists with degraded metrics; the
+optimiser can drive $\lambda$ small elsewhere). It does not
+strictly exclude the counter-narrative ``$\lambda{=}0$ would also
+have degraded on Steam''; we phrase the lesson in
+the Conclusion accordingly.
+
+\paragraph{Conservatism of paired-$t$ at $n{=}5$.}
+With $\mathrm{df}{=}4$ the paired-$t$ has low power. We mitigate by
+also requiring the per-user bootstrap (effective $n$ in the thousands)
+and the per-seed sign-majority gate. The cost is that some
+small-magnitude positive effects may be missed; the benefit is that
+the cells we do flag as robust are unlikely to be artifacts of
+seed or test-population sampling.

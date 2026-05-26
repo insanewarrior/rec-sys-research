@@ -37,12 +37,93 @@
 % retune the tone from "we propose" to "we hypothesised".
 %
 % Contributions bullet list at end of section:
-%   - Three IA-SASRec variants with explicit lambda escape hatch.
-%   - A 7-dataset, 5-seed evaluation with a triple-gate significance
+%   - Three IA-SASRec variants with explicit lambda fallback.
+%   - A 7-dataset, 5-seed evaluation with a dual-criterion significance
 %     protocol (paired t + per-user bootstrap + per-seed sign agreement).
 %   - A negative result with mechanism analysis via the learned lambda.
 %   - Released code, checkpoints, and per-user metric parquets for full
 %     reproducibility.
 % =====================================================================
 \section{Introduction}
-TODO: introduction prose per the plan above.
+\label{sec:intro}
+
+Sequential recommenders treat a user's interaction history as a token
+stream, and self-attention models such as SASRec~\citep{kang2018sasrec}
+and BERT4Rec~\citep{sun2019bert4rec} dominate the leaderboards. In
+the standard formulation, every interaction is collapsed to a binary
+``happened'': item $i_j$ was in the user's history at position $j$,
+and that is the totality of the signal that reaches the attention
+layer. The underlying intensity of each interaction (a
+$5$-star rating on MovieLens, hours played on Steam, dwell time or
+purchase value in industrial logs) is discarded. From a Shannon
+standpoint that is a lot of supervised information thrown away, and
+the discard is more notable the richer the intensity signal is:
+a binary signal carries one bit; a continuous heavy-tailed playtime
+distribution can carry several.
+
+A natural hypothesis follows: re-introducing per-interaction intensity
+into the attention computation should help, and should help in
+proportion to how informative the underlying signal is. Steam
+playtime (continuous, heavy-tailed, several bits per interaction)
+should help more than discrete $1$--$5$ ratings on
+MovieLens, whose entropy is bounded above by $\log_2 5 \approx 2.3$
+bits and is much lower in practice given the well-known rating bias
+toward $4$ and $5$.
+
+We test this hypothesis with three drop-in modifications of SASRec
+(IA-SASRec-Add, IA-SASRec-Mul, and IA-SASRec-Val), corresponding
+to the three algebraic positions in the attention expression where
+intensity can be threaded in (pre-softmax additive bias, pre-softmax
+multiplicative scale, post-softmax attention reweighting).
+Each variant adds exactly one learnable scalar $\lambda$ per
+attention layer, initialised to $1.0$, designed so that $\lambda{=}0$
+collapses the variant bit-for-bit to vanilla SASRec. The model is
+therefore a strict super-set of the baseline: if intensity is
+not informative, a fair learner can recover SASRec exactly.
+
+Across seven datasets, spanning the discrete-rating and
+continuous-playtime regimes, and five random seeds per
+(dataset, model) cell, the hypothesis fails. Not one of the $63$
+tested cells ($3$ variants $\times$ $3$ metrics at $k{=}10$ across
+$7$ datasets) shows a robust improvement under our dual-criterion
+significance protocol: a seed-level paired $t$ and a per-user
+paired bootstrap that must both reject, guarded by a per-seed
+CI sign-majority on the bootstrap. The single
+positive paired-$t$ cell (IA-SASRec-Add on Amazon-Office MRR@10,
+$+3.6\%, p{=}0.025$) is suppressed by the per-user bootstrap and
+the per-seed sign agreement. Worse, the degradation pattern is the
+opposite of the intensity-richness prediction. Steam, the
+dataset with the richest signal, hosts the largest and cleanest
+significant losses ($-9.5\%$ to $-7.3\%$ NDCG@10/Recall@10/MRR@10
+across Steam-3k Mul and Steam-15k Mul/Val, all robust).
+
+The architecture was designed with an explicit fallback
+($\lambda{=}0$ recovers SASRec), so the failure has a sharp
+mechanism question attached, which we answer through an analysis of
+the learned per-layer $\lambda$. The learned $\lambda$ does adapt: it
+drops to $0.07$ on ML-1M Val (and the model recovers SASRec), so the
+optimisation path is open. But on Steam it stays at $0.55$--$0.99$
+across all three variants and all three subset sizes, even as test
+metrics degrade. The optimiser can disable intensity and chooses not to. A
+single per-layer scalar is not a sufficient fallback for
+intensity injection: it cannot down-weight specific intensity values,
+and it cannot let some attention heads use intensity while others
+ignore it. It also confounds the signal itself with the way we encoded
+it: a flat $\lambda$ could mean intensity carries no information, or
+that our normalisation choice flattened the information that was there.
+
+\paragraph{Contributions.}
+\begin{itemize}
+\item Three IA-SASRec variants (Add / Mul / Val) realised as a
+unified framework with one learnable scalar $\lambda$ per layer, so
+that $\lambda{=}0$ collapses each variant exactly to SASRec.
+\item A 7-dataset $\times$ 5-seed evaluation under a dual-criterion
+significance protocol (paired-$t$ at the seed level and a per-user
+paired bootstrap with $B{=}2{,}000$, guarded by a per-seed CI
+sign-majority on the bootstrap) explicitly designed against
+the failure modes flagged by prior reproducibility critiques~\citep{ferrari2019,sun2020daisy}.
+\item A negative result with mechanism evidence: learned $\lambda$
+stays large precisely where the variant hurts the most, and the
+``off-switch at $\lambda{=}0$'' fallback is not realised in
+practice.
+\end{itemize}

@@ -1,22 +1,429 @@
 % =====================================================================
-%  refs.bib — bibliography skeleton for the IA-SASRec paper
-%
-%  Populate with full BibTeX records before drafting Related Work.
-%  Must-cite keys referenced in sections/02_related_work.tex and
-%  sections/04_experimental_setup.tex:
-%
-%    kang2018sasrec     — SASRec (ICDM 2018, Kang & McAuley)
-%    sun2019bert4rec    — BERT4Rec (CIKM 2019, Sun et al.)
-%    li2020tisasrec     — TiSASRec (WSDM 2020, Li et al.)
-%    zhang2019fdsa      — FDSA (IJCAI 2019, Zhang et al.)
-%    zhou2020s3rec      — S3-Rec (CIKM 2020, Zhou et al.)
-%    ferrari2019        — Are We Really Making Much Progress?
-%                          (RecSys 2019, Ferrari Dacrema et al.)
-%    sun2020daisy       — daisyRec benchmarking critique
-%                          (RecSys 2020, Sun et al.)
-%    zhao2021recbole    — RecBole (CIKM 2021, Zhao et al.)
-%    akiba2019optuna    — Optuna (KDD 2019, Akiba et al.)
-%
-%  Add a "@misc{ourcode2026, ...}" entry pointing at the released
-%  repo once a public URL exists.
+%  refs.bib — bibliography for the IA-SASRec paper.
+%  APA-style entries with DOIs (journal "Artificial Intelligence",
+%  ISSN 1561-5359, requires APA + DOIs).
 % =====================================================================
+
+% ----- Sequential attention recommenders -----
+
+@inproceedings{kang2018sasrec,
+  author    = {Kang, Wang-Cheng and McAuley, Julian},
+  title     = {Self-Attentive Sequential Recommendation},
+  booktitle = {{Proceedings of the IEEE International Conference on Data Mining (ICDM)}},
+  pages     = {197--206},
+  year      = {2018},
+  doi       = {10.1109/ICDM.2018.00035}
+}
+
+@inproceedings{sun2019bert4rec,
+  author    = {Sun, Fei and Liu, Jun and Wu, Jian and Pei, Changhua and Lin, Xiao and Ou, Wenwu and Jiang, Peng},
+  title     = {{BERT4Rec}: Sequential Recommendation with Bidirectional Encoder Representations from Transformer},
+  booktitle = {{Proceedings of the 28th ACM International Conference on Information and Knowledge Management (CIKM)}},
+  pages     = {1441--1450},
+  year      = {2019},
+  doi       = {10.1145/3357384.3357895}
+}
+
+@inproceedings{li2020tisasrec,
+  author    = {Li, Jiacheng and Wang, Yujie and McAuley, Julian},
+  title     = {Time Interval Aware Self-Attention for Sequential Recommendation},
+  booktitle = {{Proceedings of the 13th International Conference on Web Search and Data Mining (WSDM)}},
+  pages     = {322--330},
+  year      = {2020},
+  doi       = {10.1145/3336191.3371786}
+}
+
+@inproceedings{hidasi2016gru4rec,
+  author    = {Hidasi, Bal{\'a}zs and Karatzoglou, Alexandros and Baltrunas, Linas and Tikk, Domonkos},
+  title     = {Session-based Recommendations with Recurrent Neural Networks},
+  booktitle = {{International Conference on Learning Representations (ICLR)}},
+  year      = {2016},
+  doi       = {10.48550/arXiv.1511.06939}
+}
+
+@inproceedings{li2017narm,
+  author    = {Li, Jing and Ren, Pengjie and Chen, Zhumin and Ren, Zhaochun and Lian, Tao and Ma, Jun},
+  title     = {Neural Attentive Session-based Recommendation},
+  booktitle = {{Proceedings of the 2017 ACM Conference on Information and Knowledge Management (CIKM)}},
+  pages     = {1419--1428},
+  year      = {2017},
+  doi       = {10.1145/3132847.3132926}
+}
+
+@inproceedings{rendle2010fpmc,
+  author    = {Rendle, Steffen and Freudenthaler, Christoph and Schmidt-Thieme, Lars},
+  title     = {Factorizing Personalized {M}arkov Chains for Next-Basket Recommendation},
+  booktitle = {{Proceedings of the 19th International Conference on World Wide Web (WWW)}},
+  pages     = {811--820},
+  year      = {2010},
+  doi       = {10.1145/1772690.1772773}
+}
+
+@inproceedings{rendle2009bpr,
+  author    = {Rendle, Steffen and Freudenthaler, Christoph and Gantner, Zeno and Schmidt-Thieme, Lars},
+  title     = {{BPR}: Bayesian Personalized Ranking from Implicit Feedback},
+  booktitle = {{Proceedings of the 25th Conference on Uncertainty in Artificial Intelligence (UAI)}},
+  pages     = {452--461},
+  year      = {2009},
+  doi       = {10.5555/1795114.1795167}
+}
+
+@inproceedings{wu2020ssept,
+  author    = {Wu, Liwei and Li, Shuqing and Hsieh, Cho-Jui and Sharpnack, James},
+  title     = {{SSE-PT}: Sequential Recommendation Via Personalized Transformer},
+  booktitle = {{Proceedings of the 14th ACM Conference on Recommender Systems (RecSys)}},
+  pages     = {328--337},
+  year      = {2020},
+  doi       = {10.1145/3383313.3412258}
+}
+
+@inproceedings{fan2021lightsans,
+  author    = {Fan, Xinyan and Liu, Zheng and Lian, Jianxun and Zhao, Wayne Xin and Xie, Xing and Wen, Ji-Rong},
+  title     = {Lighter and Better: Low-Rank Decomposed Self-Attention Networks for Next-Item Recommendation},
+  booktitle = {{Proceedings of the 44th International ACM SIGIR Conference on Research and Development in Information Retrieval}},
+  pages     = {1733--1737},
+  year      = {2021},
+  doi       = {10.1145/3404835.3462440}
+}
+
+@inproceedings{zhou2022fmlp,
+  author    = {Zhou, Kun and Yu, Hui and Zhao, Wayne Xin and Wen, Ji-Rong},
+  title     = {Filter-Enhanced {MLP} is All You Need for Sequential Recommendation},
+  booktitle = {{Proceedings of the ACM Web Conference (WWW)}},
+  pages     = {2388--2399},
+  year      = {2022},
+  doi       = {10.1145/3485447.3512111}
+}
+
+@inproceedings{tang2018caser,
+  author    = {Tang, Jiaxi and Wang, Ke},
+  title     = {Personalized Top-N Sequential Recommendation via Convolutional Sequence Embedding},
+  booktitle = {{Proceedings of the 11th ACM International Conference on Web Search and Data Mining (WSDM)}},
+  pages     = {565--573},
+  year      = {2018},
+  doi       = {10.1145/3159652.3159656}
+}
+
+@inproceedings{yuan2019nextitnet,
+  author    = {Yuan, Fajie and Karatzoglou, Alexandros and Arapakis, Ioannis and Jose, Joemon M. and He, Xiangnan},
+  title     = {A Simple Convolutional Generative Network for Next Item Recommendation},
+  booktitle = {{Proceedings of the 12th ACM International Conference on Web Search and Data Mining (WSDM)}},
+  pages     = {582--590},
+  year      = {2019},
+  doi       = {10.1145/3289600.3290975}
+}
+
+% ----- Side-information / feature-aware sequential models -----
+
+@inproceedings{zhang2019fdsa,
+  author    = {Zhang, Tingting and Zhao, Pengpeng and Liu, Yanchi and Sheng, Victor S. and Xu, Jiajie and Wang, Deqing and Liu, Guanfeng and Zhou, Xiaofang},
+  title     = {Feature-level Deeper Self-Attention Network for Sequential Recommendation},
+  booktitle = {{Proceedings of the 28th International Joint Conference on Artificial Intelligence (IJCAI)}},
+  pages     = {4320--4326},
+  year      = {2019},
+  doi       = {10.24963/ijcai.2019/600}
+}
+
+@inproceedings{zhou2020s3rec,
+  author    = {Zhou, Kun and Wang, Hui and Zhao, Wayne Xin and Zhu, Yutao and Wang, Sirui and Zhang, Fuzheng and Wang, Zhongyuan and Wen, Ji-Rong},
+  title     = {{S$^3$-Rec}: Self-Supervised Learning for Sequential Recommendation with Mutual Information Maximization},
+  booktitle = {{Proceedings of the 29th ACM International Conference on Information and Knowledge Management (CIKM)}},
+  pages     = {1893--1902},
+  year      = {2020},
+  doi       = {10.1145/3340531.3411954}
+}
+
+@inproceedings{liu2021novabert,
+  author    = {Liu, Chang and Li, Xiaoyang and Cai, Guoxin and Dong, Zhiyong and Zhu, Hongbo and Shang, Lifeng},
+  title     = {Noninvasive Self-Attention for Side Information Fusion in Sequential Recommendation},
+  booktitle = {{Proceedings of the 35th AAAI Conference on Artificial Intelligence}},
+  pages     = {4249--4256},
+  year      = {2021},
+  doi       = {10.1609/aaai.v35i5.16549}
+}
+
+@inproceedings{xie2022difsr,
+  author    = {Xie, Yueqi and Zhou, Peilin and Kim, Sunghun},
+  title     = {Decoupled Side Information Fusion for Sequential Recommendation},
+  booktitle = {{Proceedings of the 45th International ACM SIGIR Conference on Research and Development in Information Retrieval}},
+  pages     = {1611--1621},
+  year      = {2022},
+  doi       = {10.1145/3477495.3531963}
+}
+
+% ----- Implicit-feedback weighting (loss-level, not attention-level) -----
+
+@inproceedings{hu2008cf,
+  author    = {Hu, Yifan and Koren, Yehuda and Volinsky, Chris},
+  title     = {Collaborative Filtering for Implicit Feedback Datasets},
+  booktitle = {{Proceedings of the 8th IEEE International Conference on Data Mining (ICDM)}},
+  pages     = {263--272},
+  year      = {2008},
+  doi       = {10.1109/ICDM.2008.22}
+}
+
+@inproceedings{pan2008oneclass,
+  author    = {Pan, Rong and Zhou, Yunhong and Cao, Bin and Liu, Nathan N. and Lukose, Rajan and Scholz, Martin and Yang, Qiang},
+  title     = {One-Class Collaborative Filtering},
+  booktitle = {{Proceedings of the 8th IEEE International Conference on Data Mining (ICDM)}},
+  pages     = {502--511},
+  year      = {2008},
+  doi       = {10.1109/ICDM.2008.16}
+}
+
+% ----- Reproducibility / benchmarking critiques -----
+
+@inproceedings{ferrari2019,
+  author    = {Ferrari Dacrema, Maurizio and Cremonesi, Paolo and Jannach, Dietmar},
+  title     = {Are we really making much progress? {A} worrying analysis of recent neural recommendation approaches},
+  booktitle = {{Proceedings of the 13th ACM Conference on Recommender Systems (RecSys)}},
+  pages     = {101--109},
+  year      = {2019},
+  doi       = {10.1145/3298689.3347058}
+}
+
+@inproceedings{sun2020daisy,
+  author    = {Sun, Zhu and Yu, Di and Fang, Hui and Yang, Jie and Qu, Xinghua and Zhang, Jie and Geng, Cong},
+  title     = {Are we evaluating rigorously? {B}enchmarking recommendation for reproducible evaluation and fair comparison},
+  booktitle = {{Proceedings of the 14th ACM Conference on Recommender Systems (RecSys)}},
+  pages     = {23--32},
+  year      = {2020},
+  doi       = {10.1145/3383313.3412489}
+}
+
+@inproceedings{krichene2020sampled,
+  author    = {Krichene, Walid and Rendle, Steffen},
+  title     = {On Sampled Metrics for Item Recommendation},
+  booktitle = {{Proceedings of the 26th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining (KDD)}},
+  pages     = {1748--1757},
+  year      = {2020},
+  doi       = {10.1145/3394486.3403226}
+}
+
+@inproceedings{rendle2019baselines,
+  author    = {Rendle, Steffen and Krichene, Walid and Zhang, Li and Anderson, John},
+  title     = {Neural Collaborative Filtering vs. Matrix Factorization Revisited},
+  booktitle = {{Proceedings of the 14th ACM Conference on Recommender Systems (RecSys)}},
+  year      = {2020},
+  pages     = {240--248},
+  doi       = {10.1145/3383313.3412488}
+}
+
+@inproceedings{petrov2022replicability,
+  author    = {Petrov, Aleksandr and Macdonald, Craig},
+  title     = {A Systematic Review and Replicability Study of {BERT4Rec} for Sequential Recommendation},
+  booktitle = {{Proceedings of the 16th ACM Conference on Recommender Systems (RecSys)}},
+  pages     = {436--447},
+  year      = {2022},
+  doi       = {10.1145/3523227.3548487}
+}
+
+% ----- Tooling -----
+
+@inproceedings{zhao2021recbole,
+  author    = {Zhao, Wayne Xin and Mu, Shanlei and Hou, Yupeng and Lin, Zihan and Chen, Yushuo and Pan, Xingyu and Li, Kaiyuan and Lu, Yujie and Wang, Hui and Tian, Changxin and Min, Yingqian and Feng, Zhichao and Fan, Xinyan and Chen, Xu and Wang, Pengfei and Ji, Wendi and Li, Yaliang and Wang, Xiaoling and Wen, Ji-Rong},
+  title     = {{RecBole}: Towards a Unified, Comprehensive and Efficient Framework for Recommendation Algorithms},
+  booktitle = {{Proceedings of the 30th ACM International Conference on Information and Knowledge Management (CIKM)}},
+  pages     = {4653--4664},
+  year      = {2021},
+  doi       = {10.1145/3459637.3482016}
+}
+
+@inproceedings{akiba2019optuna,
+  author    = {Akiba, Takuya and Sano, Shotaro and Yanase, Toshihiko and Ohta, Takeru and Koyama, Masanori},
+  title     = {{Optuna}: A Next-generation Hyperparameter Optimization Framework},
+  booktitle = {{Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining (KDD)}},
+  pages     = {2623--2631},
+  year      = {2019},
+  doi       = {10.1145/3292500.3330701}
+}
+
+@inproceedings{paszke2019pytorch,
+  author    = {Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and Desmaison, Alban and K{\"o}pf, Andreas and Yang, Edward and DeVito, Zachary and Raison, Martin and Tejani, Alykhan and Chilamkurthy, Sasank and Steiner, Benoit and Fang, Lu and Bai, Junjie and Chintala, Soumith},
+  title     = {{PyTorch}: An Imperative Style, High-Performance Deep Learning Library},
+  booktitle = {{Advances in Neural Information Processing Systems (NeurIPS)}},
+  pages     = {8024--8035},
+  year      = {2019},
+  doi       = {10.48550/arXiv.1912.01703}
+}
+
+% ----- Datasets -----
+
+@article{harper2015movielens,
+  author    = {Harper, F. Maxwell and Konstan, Joseph A.},
+  title     = {The {MovieLens} Datasets: History and Context},
+  journal   = {{ACM Transactions on Interactive Intelligent Systems}},
+  volume    = {5},
+  number    = {4},
+  pages     = {1--19},
+  year      = {2015},
+  doi       = {10.1145/2827872}
+}
+
+@inproceedings{mcauley2015amazon,
+  author    = {McAuley, Julian and Targett, Christopher and Shi, Qinfeng and van den Hengel, Anton},
+  title     = {Image-Based Recommendations on Styles and Substitutes},
+  booktitle = {{Proceedings of the 38th International ACM SIGIR Conference on Research and Development in Information Retrieval}},
+  pages     = {43--52},
+  year      = {2015},
+  doi       = {10.1145/2766462.2767755}
+}
+
+@inproceedings{he2016amazonups,
+  author    = {He, Ruining and McAuley, Julian},
+  title     = {Ups and Downs: Modeling the Visual Evolution of Fashion Trends with One-Class Collaborative Filtering},
+  booktitle = {{Proceedings of the 25th International Conference on World Wide Web (WWW)}},
+  pages     = {507--517},
+  year      = {2016},
+  doi       = {10.1145/2872427.2883037}
+}
+
+@inproceedings{pathak2017steam,
+  author    = {Pathak, Apurva and Gupta, Kshitiz and McAuley, Julian},
+  title     = {Generating and Personalizing Bundle Recommendations on {Steam}},
+  booktitle = {{Proceedings of the 40th International ACM SIGIR Conference on Research and Development in Information Retrieval}},
+  pages     = {1073--1076},
+  year      = {2017},
+  doi       = {10.1145/3077136.3080724}
+}
+
+@inproceedings{wan2018steamreviews,
+  author    = {Wan, Mengting and McAuley, Julian},
+  title     = {Item Recommendation on Monotonic Behavior Chains},
+  booktitle = {{Proceedings of the 12th ACM Conference on Recommender Systems (RecSys)}},
+  pages     = {86--94},
+  year      = {2018},
+  doi       = {10.1145/3240323.3240369}
+}
+
+% ----- Attention / transformers (architectural reference) -----
+
+@inproceedings{vaswani2017attention,
+  author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, {\L}ukasz and Polosukhin, Illia},
+  title     = {Attention Is All You Need},
+  booktitle = {{Advances in Neural Information Processing Systems (NeurIPS)}},
+  pages     = {5998--6008},
+  year      = {2017},
+  doi       = {10.48550/arXiv.1706.03762}
+}
+
+@inproceedings{devlin2019bert,
+  author    = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
+  title     = {{BERT}: Pre-training of Deep Bidirectional Transformers for Language Understanding},
+  booktitle = {{Proceedings of NAACL-HLT 2019}},
+  pages     = {4171--4186},
+  year      = {2019},
+  doi       = {10.18653/v1/N19-1423}
+}
+
+% ----- Methodology: significance, bootstrap, effect size -----
+
+@book{efron1993bootstrap,
+  author    = {Efron, Bradley and Tibshirani, Robert J.},
+  title     = {An Introduction to the Bootstrap},
+  publisher = {Chapman \& Hall/CRC},
+  year      = {1993},
+  doi       = {10.1201/9780429246593}
+}
+
+@article{ba2016layernorm,
+  author    = {Ba, Jimmy Lei and Kiros, Jamie Ryan and Hinton, Geoffrey E.},
+  title     = {Layer Normalization},
+  journal   = {{arXiv preprint arXiv:1607.06450}},
+  year      = {2016},
+  doi       = {10.48550/arXiv.1607.06450}
+}
+
+@inproceedings{xie2022cl4srec,
+  author    = {Xie, Xu and Sun, Fei and Liu, Zhaoyang and Wu, Shen and Gao, Jinyang and Zhang, Jiandong and Ding, Bolin and Cui, Bin},
+  title     = {Contrastive Learning for Sequential Recommendation},
+  booktitle = {{Proceedings of the 38th IEEE International Conference on Data Engineering (ICDE)}},
+  pages     = {1259--1273},
+  year      = {2022},
+  doi       = {10.1109/ICDE53745.2022.00099}
+}
+
+% ----- Newly added: invasive-vs-decoupled fusion, gating / routing, cross-attention -----
+
+@inproceedings{rashed2022carca,
+  author    = {Rashed, Ahmed and Elsayed, Shereen and Schmidt-Thieme, Lars},
+  title     = {{CARCA}: Context and Attribute-Aware Next-Item Recommendation via Cross-Attention},
+  booktitle = {{Proceedings of the 16th ACM Conference on Recommender Systems (RecSys)}},
+  pages     = {71--80},
+  year      = {2022},
+  doi       = {10.1145/3523227.3546777}
+}
+
+@inproceedings{ma2019hgn,
+  author    = {Ma, Chen and Kang, Peng and Liu, Xue},
+  title     = {Hierarchical Gating Networks for Sequential Recommendation},
+  booktitle = {{Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining (KDD)}},
+  pages     = {825--833},
+  year      = {2019},
+  doi       = {10.1145/3292500.3330984}
+}
+
+@inproceedings{hou2022unisrec,
+  author    = {Hou, Yupeng and Mu, Shanlei and Zhao, Wayne Xin and Li, Yaliang and Ding, Bolin and Wen, Ji-Rong},
+  title     = {Towards Universal Sequence Representation Learning for Recommender Systems},
+  booktitle = {{Proceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery \& Data Mining (KDD)}},
+  pages     = {585--593},
+  year      = {2022},
+  doi       = {10.1145/3534678.3539381}
+}
+
+% ----- Newly added: attention pathologies and contrastive regularization -----
+
+@inproceedings{fan2022stosa,
+  author    = {Fan, Ziwei and Liu, Zhiwei and Wang, Alice and Nazari, Zahra and Zheng, Lei and Peng, Hao and Yu, Philip S.},
+  title     = {Sequential Recommendation via Stochastic Self-Attention},
+  booktitle = {{Proceedings of the ACM Web Conference (WWW)}},
+  pages     = {2036--2047},
+  year      = {2022},
+  doi       = {10.1145/3485447.3512077}
+}
+
+@inproceedings{hou2022core,
+  author    = {Hou, Yupeng and Hu, Binbin and Zhang, Zhiqiang and Zhao, Wayne Xin},
+  title     = {{CORE}: Simple and Effective Session-based Recommendation within Consistent Representation Space},
+  booktitle = {{Proceedings of the 45th International ACM SIGIR Conference on Research and Development in Information Retrieval}},
+  pages     = {1796--1801},
+  year      = {2022},
+  doi       = {10.1145/3477495.3531955}
+}
+
+@inproceedings{qiu2022duorec,
+  author    = {Qiu, Ruihong and Huang, Zi and Yin, Hongzhi and Wang, Zijian},
+  title     = {Contrastive Learning for Representation Degeneration Problem in Sequential Recommendation},
+  booktitle = {{Proceedings of the 15th ACM International Conference on Web Search and Data Mining (WSDM)}},
+  pages     = {813--823},
+  year      = {2022},
+  doi       = {10.1145/3488560.3498433}
+}
+
+@inproceedings{chen2022iclrec,
+  author    = {Chen, Yongjun and Liu, Zhiwei and Li, Jia and McAuley, Julian and Xiong, Caiming},
+  title     = {Intent Contrastive Learning for Sequential Recommendation},
+  booktitle = {{Proceedings of the ACM Web Conference (WWW)}},
+  pages     = {2172--2182},
+  year      = {2022},
+  doi       = {10.1145/3485447.3512090}
+}
+
+@inproceedings{cho2020meantime,
+  author    = {Cho, Sung Min and Park, Eunhyeok and Yoo, Sungjoo},
+  title     = {{MEANTIME}: Mixture of Attention Mechanisms with Multi-Temporal Embeddings for Sequential Recommendation},
+  booktitle = {{Proceedings of the 14th ACM Conference on Recommender Systems (RecSys)}},
+  pages     = {515--520},
+  year      = {2020},
+  doi       = {10.1145/3383313.3412216}
+}
+
+@inproceedings{liu2021asrep,
+  author    = {Liu, Zhiwei and Fan, Ziwei and Wang, Yu and Yu, Philip S.},
+  title     = {Augmenting Sequential Recommendation with Pseudo-Prior Items via Reversely Pre-training Transformer},
+  booktitle = {{Proceedings of the 44th International ACM SIGIR Conference on Research and Development in Information Retrieval}},
+  pages     = {1608--1612},
+  year      = {2021},
+  doi       = {10.1145/3404835.3463036}
+}

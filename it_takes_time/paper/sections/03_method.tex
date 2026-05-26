@@ -1,55 +1,156 @@
 % Section: Method — IA-SASRec
 % =====================================================================
-% DESCRIPTION
-% -----------
-% Lift directly from ia_sasrec.md §2-4. Goal: define the three variants
-% with enough mathematical precision that a reviewer can reproduce them
-% from this section alone. Keep notation consistent with SASRec.
-%
-% Subsection plan:
-%   3.1 Background: vanilla SASRec attention.
-%       softmax(Q K^T / sqrt(d)) V                                (1)
-%       — purely positional + content; no notion of how STRONGLY a
-%       past interaction was experienced.
-%
-%   3.2 Three intensity injections, each gated by one learnable scalar
-%       lambda per layer (initialised to 1.0):
-%         Add: softmax( Q K^T / sqrt(d) + lambda * w_k ) V         (2)
-%              -> additive logit bias from key-position intensity.
-%         Mul: softmax( (Q K^T / sqrt(d)) * (1 + lambda*(w_k-1)) ) V (3)
-%              -> multiplicative scaling of logits; lambda=0 -> SASRec.
-%         Val: ( softmax(Q K^T / sqrt(d)) * (1 + lambda*(w_k-1)) ) V (4)
-%              -> post-softmax key reweighting; preserves attention as
-%              a probability distribution but reweights how much each
-%              key's value contributes. NEW SEMANTICS — note in caption
-%              that this is a breaking change vs. earlier IA-SASRec
-%              drafts (the old Val multiplied the post-attention
-%              context by query-position intensity and could not
-%              reorder candidates; see ia_sasrec.md).
-%
-%   3.3 The lambda escape hatch (load-bearing for §6 mechanism story):
-%       At lambda=0 every variant collapses *exactly* to SASRec, so a
-%       fair learner that finds intensity uninformative should drive
-%       lambda toward 0 and recover the baseline. This is the
-%       prediction we test in §6.
-%
-%   3.4 Intensity normalisation (lift ia_sasrec.md §4):
-%       Four modes: none, minmax (with MINMAX_FLOOR=0.1 so the
-%       weakest real signal stays distinguishable from padding),
-%       log1p_minmax (default for heavy-tailed playtime), zscore.
-%       Treated as a hyperparameter; the choice is logged in
-%       results/eval/*.json under best_params.intensity_norm.
-%
-%   3.5 Parameter cost: ONE scalar per layer per variant. With L=2-3
-%       layers this is 2-3 extra parameters total — strictly less than
-%       any prior side-information injection.
-%
-% Reusable assets:
-%   - README.md "IA-SASRec — what's new" table -> Table 1 of this section.
-%   - docs/protocol_neural_networks.tex \best/\second macros for any
-%     comparison tables here.
+% Lifted from ia_sasrec.md §2--4. Three variants, learnable lambda per
+% layer (init 1.0), normalisation as a hyperparameter.
 % =====================================================================
 \section{IA-SASRec: Intensity-Aware Self-Attention}
-TODO: 3.1 background, 3.2 three variants (Eqs. 2-4), 3.3 lambda escape
-hatch, 3.4 normalisation modes, 3.5 parameter cost. Lift from
-\texttt{ia\_sasrec.md} §2-4.
+\label{sec:method}
+
+\subsection{Background: SASRec attention}
+\label{sec:method:background}
+
+SASRec~\citep{kang2018sasrec} encodes a user's left-padded history
+$s = [i_1, \dots, i_T]$ (sequence length $T$) as embeddings
+$E \in \mathbb{R}^{T \times d}$, where $d$ is the embedding dimension.
+Each transformer block projects $E$ to queries, keys, and values
+$Q, K, V \in \mathbb{R}^{T \times d}$, and computes scaled dot-product
+self-attention with a causal mask $M \in \{0, -\infty\}^{T \times T}$:
+\begin{equation}
+\mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\tfrac{QK^{\top}}{\sqrt{d}} + M\right) V.
+\label{eq:sasrec}
+\end{equation}
+Only an item's identity (via the embedding lookup) and its position (via the
+positional embedding) enter equation~\eqref{eq:sasrec}; the
+strength of each interaction (a 5-star rating, hours played,
+or dwell time) is not used. IA-SASRec re-introduces that signal.
+
+Let $w \in \mathbb{R}^T$ be the per-position intensity vector for the
+user's history (after the normalisation step described below). Define
+the intensity matrix $M_W \in \mathbb{R}^{T \times T}$ with
+$M_W[q, k] = w_k$, broadcasting intensity along the key axis,
+which is the axis the softmax normalises.
+
+\subsection{Three injection points}
+\label{sec:method:variants}
+
+The attention expression~\eqref{eq:sasrec} has three algebraic positions
+where $M_W$ can be threaded in: as a pre-softmax additive bias, as a
+pre-softmax multiplicative scale, or as a post-softmax attention reweighting.
+We instantiate all three. Each adds one learnable scalar
+$\lambda \in \mathbb{R}$ per attention layer, initialised to $1.0$, so
+that $\lambda = 0$ collapses the variant exactly to
+SASRec~\eqref{eq:sasrec}. This learnable gate is the central design
+discipline of IA-SASRec.
+
+\paragraph{IA-SASRec-Add (additive logit bias).}
+Intensity enters as an explicit bias on the raw attention logits:
+\begin{equation}
+\mathrm{Att}_{\mathrm{Add}} = \mathrm{softmax}\!\left(\tfrac{QK^{\top}}{\sqrt{d}} + \lambda\, M_W + M\right) V.
+\label{eq:add}
+\end{equation}
+A high-intensity key $k$ inflates column $k$ of the logit matrix and is
+forced to receive large attention probability, irrespective of semantic
+similarity to the query. As $\lambda \to \infty$ the variant approaches
+a hard intensity-argmax.
+
+\paragraph{IA-SASRec-Mul (multiplicative logit scaling).}
+Instead of an additive bias, the semantic similarity itself is scaled
+by intensity:
+\begin{equation}
+\begin{aligned}
+\mathrm{Att}_{\mathrm{Mul}} = \mathrm{softmax}\Big(
+  & \tfrac{QK^{\top}}{\sqrt{d}} \odot \big(1 + \lambda(M_W - 1)\big) \\
+  & {} + M \Big)\, V,
+\end{aligned}
+\label{eq:mul}
+\end{equation}
+with $\odot$ element-wise. The $(w_k - 1)$ parameterisation interpolates
+between two endpoints: at $\lambda = 0$ the multiplier is $1$ and the
+variant collapses to SASRec; at $\lambda = 1$ the multiplier is exactly
+$w_k$, recovering the original hard-gatekeeper formulation. The causal
+mask is added after scaling so padded keys remain at $-\infty$.
+
+\paragraph{IA-SASRec-Val (post-softmax attention reweighting).}
+The standard softmax computes the attention distribution; intensity then
+reweights each key position's attention probability before the value
+mix. Equivalently, since the factor depends only on $k$, this is
+algebraically identical to pre-scaling each value vector $V_k$ by its
+intensity: $\big(A \odot (1{+}\lambda(M_W{-}1))\big)\,V = A\,(D_\lambda V)$,
+where $D_\lambda = \mathrm{diag}(1{+}\lambda(w{-}1))$. Hence the name
+\emph{Val}: the operation acts at the value-mixing stage of attention.
+\begin{equation}
+\begin{aligned}
+\mathrm{Att}_{\mathrm{Val}} = \bigl[\,
+  & \mathrm{softmax}\!\left(\tfrac{QK^{\top}}{\sqrt{d}} + M\right) \\
+  & \odot \bigl(1 + \lambda(M_W - 1)\bigr) \bigr]\, V.
+\end{aligned}
+\label{eq:val}
+\end{equation}
+Unlike Mul, which acts on raw logits and can be diluted by the
+softmax normalisation, Val acts directly on the attention
+probabilities that mix the values. We deliberately do not renormalise
+the reweighted distribution: any magnitude inflation introduced by
+$1{+}\lambda(w_k{-}1) > 1$ is absorbed by the post-attention layer
+normalisation~\citep{ba2016layernorm} in the residual block, while the
+intensity-driven \emph{direction} change in the output vector --- the
+part that actually re-ranks candidates --- passes through unaffected.
+
+Equation~\eqref{eq:val} is a breaking change from a previous formulation
+of Val, which multiplied the post-attention context by
+query-position intensity. At prediction time only the last query is
+read out, so every candidate score was rescaled by the same constant
+and the ranking was identical to vanilla SASRec: the variant could
+not reorder candidates and is not a meaningful test of intensity
+injection.
+
+\subsection{The $\lambda$ fallback}
+\label{sec:method:escape}
+
+At $\lambda = 0$ each variant equals SASRec bit-for-bit (verified by
+unit tests on the attention math). A fair learner that finds intensity
+not informative should therefore drive $\lambda \to 0$ and recover the
+baseline. This is the load-bearing prediction we test empirically: if
+the fallback holds, learned $\lambda$
+should be small wherever IA-SASRec fails to improve over SASRec, and
+large only where it helps.
+
+\subsection{Intensity normalisation}
+\label{sec:method:norm}
+
+Raw intensities are heterogeneous: Steam hours range from $0.1$ to
+$1000+$, while ratings live in $\{1,\dots,5\}$. Feeding raw values
+through a softmax causes severe value collapse, so normalisation is
+essential rather than cosmetic. We expose four modes as a single
+hyperparameter \texttt{intensity\_norm} selected by Optuna~\citep{akiba2019optuna}:
+\texttt{log1p\_minmax} (default; per-user $\log(1+w)$ then divide by
+the masked max), \texttt{minmax} (per-user with a floor $f = 0.1$ so
+the weakest real signal stays distinguishable from padding),
+\texttt{zscore}, and \texttt{none} (sanity-check ablation). The floor
+$f$ is non-cosmetic: without it the least-intense real item maps to
+exactly $0$ and becomes indistinguishable from padding, silently
+discarding one interaction per sequence in Mul and Val. After every
+mode, padding positions are forcibly zeroed.
+
+\subsection{Parameter cost}
+\label{sec:method:cost}
+
+Each variant adds exactly $n_{\mathrm{layers}}$ learnable scalars
+total ($2$--$3$ in our configurations), strictly less than any
+prior side-information injection. Table~\ref{tab:variants} summarises
+the three formulations.
+
+\begin{table*}[t]
+\centering
+\small
+\caption{The three IA-SASRec variants. $\lambda$ is a learnable scalar per layer (init $1.0$); $\lambda = 0$ collapses each variant to SASRec.}
+\label{tab:variants}
+\begin{tabular}{ll}
+\toprule
+Variant & Mechanism \\
+\midrule
+Add & $\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} + \lambda\, M_W + M\right)\! V$ \\[1.2em]
+Mul & $\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} \odot \bigl(1 + \lambda(M_W - 1)\bigr) + M\right)\! V$ \\[1.2em]
+Val & $\left[\,\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} + M\right) \odot \bigl(1 + \lambda(M_W - 1)\bigr)\right] V$ \\[0.6em]
+\bottomrule
+\end{tabular}
+\end{table*}

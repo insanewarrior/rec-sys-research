@@ -6,8 +6,7 @@
 % per dataset cluster). Do NOT bury the negative cells in an appendix —
 % the pattern (worst where signal is richest) IS the story.
 %
-%   Main table (auto-generate via tables/main_results.tex from
-%   notebooks/1_significance.ipynb cell 11 [combined] / cell 12 [robust]):
+%   Main table (auto-generated to tables/main_results.tex):
 %     Rows  : 7 datasets (grouped: ML / Amazon / Steam).
 %     Cols  : {Add, Mul, Val} x {NDCG@10, Recall@10, MRR@10}.
 %     Cells : rel%Δ vs SASRec, paired-t stars (*/**/***), per-seed
@@ -40,7 +39,7 @@
 %        Office Products is significantly worse (Recall@10 -6.1%,
 %        p=0.005). Treat the one positive as a single-cell
 %        observation, not a finding — it is exactly the kind of result
-%        a triple-gate protocol is designed to NOT over-claim.
+%        a dual-criterion protocol is designed to NOT over-claim.
 %
 %   P3 — Steam (3k / 8k / 15k):
 %        The "hypothesis-killer" cluster. Every variant negative on
@@ -54,6 +53,69 @@
 % Cross-reference into §6 for the mechanism analysis.
 % =====================================================================
 \section{Results}
-TODO: insert main results table (tables/main_results.tex), forest plot
-(figures/forest_ndcg10.pdf), and three narrative paragraphs (MovieLens,
-Amazon, Steam) per the description above.
+\label{sec:results}
+
+\input{tables/main_results}
+
+Table~\ref{tab:main_results} reports the relative change in
+NDCG@10, Recall@10, and MRR@10 of each IA-SASRec variant against
+the SASRec baseline, paired by seed. Stars indicate paired-$t$
+significance; cells in bold are robust under the dual-criterion
+protocol described in the previous section (paired $t$ and per-user
+bootstrap both reject at $\alpha=0.05$, with the per-seed
+sign-majority stability check holding).
+Figure~\ref{fig:forest} shows the per-user paired bootstrap CIs for
+NDCG@10 across every (dataset, variant) pair: nearly every
+confidence interval either crosses zero or sits to its left.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/forest_ndcg10.pdf}
+\caption{Per-user paired bootstrap ($B{=}2000$) on aligned NDCG@10 differences vs SASRec, pooled across five seeds. Each row is one (dataset, variant) cell; centre = mean per-user $\Delta$, whiskers = 95\% percentile CI. Red rows have CI entirely below zero; green rows entirely above; grey rows cross zero. No robust positive cell exists for NDCG@10.}
+\label{fig:forest}
+\end{figure}
+
+The headline is that across $63$ tested cells ($7$ datasets $\times$
+$3$ variants $\times$ $3$ metrics at $k{=}10$), no positive cell
+survives the dual-criterion test with the per-seed stability check.
+Every robust cell is a significant degradation. Extending the same
+dual-criterion test to deeper cutoffs $k \in \{20, 50, 100\}$ for the
+same metric trio adds $189$ further cells, $0$ of which robustly reject
+positively; the null verdict is not an artefact of the $k{=}10$ choice. We unpack the pattern dataset
+by dataset.
+
+\paragraph{MovieLens (ML-100K, ML-1M).}
+Every cell is non-significant under paired-$t$ at $\alpha=0.05$.
+ML-100K shows numerically large drops ($-5$ to $-13\%$) but with
+$n{=}5$ seeds and the small per-user counts of a $943$-user dataset
+the paired-$t$ cannot reject. ML-1M is essentially flat: $-0.9\%$ to
+$+1.7\%$ relative change across all nine cells. Bounded discrete
+rating intensity does nothing measurable, neither helping nor robustly
+hurting, consistent with the prior assumption that rating-as-side-signal
+is information-poor.
+
+\paragraph{Amazon (Digital Music, Office Products).}
+Mixed and small. The single positive paired-$t$ cell in the entire
+campaign (IA-SASRec-Add on Amazon-Office MRR@10, $+3.6\%$,
+$p=0.025$) is exactly what a single-seed protocol would publish
+as a win. Under our dual-criterion test with the per-seed stability check it does not survive: the per-user
+bootstrap or the per-seed sign majority fails, and the same
+configuration is non-significant on NDCG@10 ($+2.5\%$) and Recall@10
+($+1.4\%$). Mul on Amazon-Music degrades NDCG@10 ($-2.7\%$, $p=0.012$)
+and Recall@10 ($-2.9\%$, $p=0.021$); Val on Amazon-Office degrades
+Recall@10 robustly ($-6.1\%$, $p=0.005$, bold in
+Table~\ref{tab:main_results}). The Amazon cluster shows the value of
+a dual-criterion protocol with a stability check: it suppresses exactly the cell that would
+otherwise be the headline win.
+
+\paragraph{Steam (3k / 8k / 15k).}
+The hypothesis-killer cluster. Every variant degrades NDCG@10 across
+all three subset sizes. Steam-3k Mul is $-9.5\%^{*}$ NDCG@10 and
+$-10.7\%^{*}$ MRR@10, both robust; Steam-15k Mul lands at
+$-5.0\%^{**}$/$-4.5\%^{**}$/$-5.7\%^{*}$ across NDCG@10/Recall@10/MRR@10 and
+Steam-15k Val at $-6.2\%^{**}$/$-5.1\%^{**}$/$-7.3\%^{*}$: six
+robust degradations in a single dataset cluster.
+This is the opposite of what the intensity-richness hypothesis
+predicts: Steam carries the richest, most continuous interaction
+signal of the seven datasets, and is exactly where IA-SASRec hurts
+most.

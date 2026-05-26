@@ -2,40 +2,140 @@
 % =====================================================================
 % DESCRIPTION
 % -----------
-% Three buckets, each ~one paragraph. Goal is to (a) place IA-SASRec in
-% the literature and (b) make the gap concrete: no prior work isolates
-% PER-INTERACTION INTENSITY as the injected attention signal.
+% Five buckets. Goal is to (a) place IA-SASRec in the literature and
+% (b) make the gap and the negative result concrete: no prior work
+% isolates PER-INTERACTION INTENSITY as the injected attention signal,
+% and the existing literature on side-information fusion and
+% attention pathologies already predicts the failure mode we observe.
 %
-% Bucket A — Sequential attention recommenders:
-%   - SASRec \citep{kang2018sasrec}: causal self-attention over the
-%     interaction sequence; the baseline.
-%   - BERT4Rec \citep{sun2019bert4rec}: bidirectional masked-LM
-%     pretraining.
-%   - TiSASRec \citep{li2020tisasrec}: injects RELATIVE TIME GAPS
-%     between interactions into attention. Closest prior art — but the
-%     injected signal is temporal, not interaction strength.
+%   A — Sequential attention recommenders (placement & gap).
+%   B — Side information in sequence models (where we sit vs. item-side
+%       and loss-side approaches).
+%   C — Invasive vs. decoupled side-information fusion (theoretical
+%       backdrop for the negative result: NOVA, DIF-SR, CARCA, HGN,
+%       UniSRec, SSE-PT).
+%   D — Attention pathologies and regularization (FMLP, STOSA,
+%       LightSANs, CORE, DuoRec, CL4SRec, ICLRec, ASReP, MEANTIME).
+%   E — Reproducibility and benchmarking critiques (why our dual-
+%       criterion protocol matters).
 %
-% Bucket B — Side-information injection in sequence models:
-%   - FDSA \citep{zhang2019fdsa}, S3-Rec \citep{zhou2020s3rec}: inject
-%     item-side features (category, attribute) via separate streams or
-%     pretraining objectives.
-%   - Frame the distinction: these inject *item* metadata; IA-SASRec
-%     injects *interaction-level* intensity, which varies across users
-%     for the same item.
-%
-% Bucket C — Reproducibility / benchmarking critiques:
-%   - Ferrari Dacrema et al. \citep{ferrari2019} — many neural rec
-%     models fail to beat tuned baselines once protocol is fixed.
-%   - Sun et al. \citep{sun2020daisy} — single-seed reporting inflates
-%     gains. Our triple-gate significance protocol is designed against
-%     exactly these failure modes; the Amazon-Office-Products positive
-%     cell (Add, MRR@10, +3.6%, p=0.025) would have been a publishable
-%     "win" under a one-seed protocol — we show it does not generalise.
-%
-% refs.bib entries to add (skeleton placeholders in refs.bib):
-%   kang2018sasrec, sun2019bert4rec, li2020tisasrec, zhang2019fdsa,
-%   zhou2020s3rec, ferrari2019, sun2020daisy, zhao2021recbole,
-%   akiba2019optuna.
+% Reference ordering: refs.bib uses unsrtnat which numbers entries in
+% order of first appearance in the text. Within multi-key \citep{...,...}
+% groups, list keys in the desired reveal order.
 % =====================================================================
 \section{Related Work}
-TODO: related-work prose across the three buckets above.
+\label{sec:related}
+
+\paragraph{Sequential attention recommenders.}
+The Transformer~\citep{vaswani2017attention} brought self-attention to
+sequence modelling, and SASRec~\citep{kang2018sasrec} adapted causal
+self-attention to next-item recommendation; it remains the canonical
+attention-based baseline. BERT4Rec~\citep{sun2019bert4rec} replaces the
+causal mask with a bidirectional masked-language-modelling objective
+in the spirit of BERT~\citep{devlin2019bert}. Both treat each
+historical interaction as a binary presence signal: the item identity
+and its position are everything the model sees.
+TiSASRec~\citep{li2020tisasrec} is the closest prior work; it injects
+relative time gaps between adjacent interactions directly into the
+attention computation through a learned bias on the absolute time
+delta. The architectural surface is the same as IA-SASRec, a learned
+modifier applied to attention scores, but the injected signal is
+different: TiSASRec injects temporal spacing, a structural feature of
+the sequence; IA-SASRec injects interaction strength, which varies
+across users for the same item-position pair. Earlier non-attention
+sequential recommenders (GRU4Rec~\citep{hidasi2016gru4rec},
+NARM~\citep{li2017narm}, FPMC~\citep{rendle2010fpmc},
+Caser~\citep{tang2018caser}, NextItNet~\citep{yuan2019nextitnet})
+and the classic implicit-feedback ranker BPR~\citep{rendle2009bpr}
+likewise make no use of per-interaction intensity at the architectural
+level.
+
+\paragraph{Side information in sequence models.}
+FDSA~\citep{zhang2019fdsa} runs separate self-attention streams over
+item identities and item-side features (category, brand, attributes)
+and concatenates their outputs. $S^3$-Rec~\citep{zhou2020s3rec} brings
+side information in through pretraining objectives that mask
+attributes, items, and segments. Both inject
+item-side metadata: features that are constant across the
+population for a given item. IA-SASRec instead injects an
+interaction-side signal: the same item appears with different
+intensities in different users' histories, so the injected quantity
+carries personalisation information that item-side features cannot.
+At the loss / sampling level, weighted matrix
+factorisation~\citep{hu2008cf} and one-class collaborative
+filtering~\citep{pan2008oneclass} use interaction strength to weight
+the training objective in non-sequential recommenders. Those approaches modify what is
+optimised, not what the attention layer sees; IA-SASRec is a strictly
+more invasive intervention.
+
+\paragraph{Invasive vs. decoupled side-information fusion.}
+A growing body of work has recognised that fusing auxiliary signals
+into standard self-attention is structurally fragile.
+NOVA~\citep{liu2021novabert} argues explicitly against
+invasive fusion: mixing side information into item embeddings
+or attention logits creates semantic interference and degrades the
+value path; it proposes using side information only to shape attention
+weights while keeping the value matrix purely semantic.
+DIF-SR~\citep{xie2022difsr} extends this critique to early fusion and
+shows that auxiliary signals require their own decoupled attention
+sub-spaces to be effective. CARCA~\citep{rashed2022carca} sidesteps
+self-attention injection entirely by querying context and attribute
+information through cross-attention, treating them as external
+key--value pairs rather than perturbations to the causal sequence.
+Dense routing alternatives reinforce the same point:
+HGN~\citep{ma2019hgn} introduces hierarchical instance and feature
+gating mechanisms rather than scalar gates, and
+UniSRec~\citep{hou2022unisrec} routes heterogeneous textual features
+through a mixture-of-experts blender. SSE-PT~\citep{wu2020ssept}
+critiques vanilla SASRec's lack of explicit personalisation and
+injects user identity through stochastic shared embeddings.
+MEANTIME~\citep{cho2020meantime} similarly argues that a single
+attention head cannot absorb heterogeneous temporal signals and
+allocates separate heads to different temporal embedding types. By
+construction, IA-SASRec acts as an invasive, mid-attention,
+scalar-gated intervention. It sits precisely in the architectural
+region this literature flags as fragile, setting up a strict
+empirical test of whether a shared scalar gate can overcome the
+predicted semantic interference.
+
+\paragraph{Attention pathologies and regularization.}
+A parallel line of work argues that dot-product self-attention itself
+is an unreliable substrate for sequential recommendation.
+FMLP-Rec~\citep{zhou2022fmlp} replaces attention with a
+filter-enhanced MLP to dampen frequency noise;
+STOSA~\citep{fan2022stosa} replaces point-attention with stochastic
+Gaussian distributions and a Wasserstein-distance ranker;
+LightSANs~\citep{fan2021lightsans} restricts attention to a low-rank
+subspace to prevent the optimiser from exploiting shortcuts; and
+CORE~\citep{hou2022core} diagnoses a representation inconsistency
+between sequence encoding and the final dot-product ranker. A second
+strand of regularization tackles representation degeneration
+(embeddings collapsing into a narrow cone where small perturbations
+dominate) through contrastive learning over augmented or intent-clustered
+sequences~\citep{xie2022cl4srec,qiu2022duorec,chen2022iclrec},
+or through data augmentation alone~\citep{liu2021asrep}. These
+critiques are directly relevant to the design under test: if an
+invasive scalar-gated injection drives representation degeneration
+of the kind this literature identifies, the optimiser can settle
+into a configuration that maximises training-loss fit while damaging
+held-out generalisation, and a global scalar gate provides no
+gradient path back out.
+
+\paragraph{Reproducibility and benchmarking critiques.}
+Prior reproducibility critiques~\citep{ferrari2019,sun2020daisy}
+have shown that many neural recommender models do not beat well-tuned
+classical baselines~\citep{rendle2019baselines}
+once the protocol is fixed across methods, and that single-seed
+reporting lets small effects survive significance testing on one seed
+only to disappear on the next. Sampled top-$k$ metrics misrank
+methods systematically relative to full-vocabulary
+scoring~\citep{krichene2020sampled}, and even widely cited baselines
+such as BERT4Rec~\citep{sun2019bert4rec} are sensitive to implementation
+choices that go unreported in the original publications~\citep{petrov2022replicability}.
+Our dual-criterion significance protocol is designed against exactly
+these failure modes: it requires both a seed-level paired $t$-test
+and a per-user paired bootstrap to reject, with a per-seed sign-majority
+guarding against single-seed dominance, and we score against the full
+item vocabulary rather than a random negative pool. The IA-SASRec-Add
+Amazon-Office MRR@10 ``win'' we observe is a textbook example of the
+failure mode this protocol catches.

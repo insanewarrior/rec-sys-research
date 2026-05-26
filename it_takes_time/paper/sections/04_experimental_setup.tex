@@ -56,5 +56,98 @@
 %       end-to-end from \texttt{notebooks/1\_significance.ipynb}.
 % =====================================================================
 \section{Experimental Setup}
-TODO: 4.1 datasets table, 4.2 training/HPO budget, 4.3 triple-gate
-significance protocol, 4.4 implementation note.
+\label{sec:setup}
+
+\subsection{Datasets}
+\label{sec:setup:data}
+
+Table~\ref{tab:datasets} lists the seven datasets used. They are
+chosen to span two regimes of intensity signal: discrete,
+low-entropy explicit ratings ($1$--$5$) on MovieLens-100K and
+MovieLens-1M~\citep{harper2015movielens},
+Amazon Digital Music 5-core and Amazon Office Products 5-core~\citep{mcauley2015amazon,he2016amazonups};
+and continuous, heavy-tailed implicit hours-played on three Steam
+Reviews subsamples~\citep{pathak2017steam,wan2018steamreviews}
+($3$k, $8$k, $15$k users; fixed seed 2020). All
+datasets are 5-core filtered ($|\text{interactions}_u|, |\text{interactions}_i| \ge 5$).
+The split is per-user chronological leave-one-out: the latest interaction
+forms the test target, the second-latest is held out as validation, the
+remainder is training.
+
+\input{tables/datasets}
+
+\subsection{Training and hyperparameter optimisation}
+\label{sec:setup:hpo}
+
+Every (dataset, model) pair receives an identical hyperparameter budget:
+$25$ Optuna~\citep{akiba2019optuna} trials with the TPE sampler,
+optimising validation NDCG@10 with $10$ epochs per trial (short HPO).
+The search space for SASRec and the three IA-SASRec variants is the
+same on the SASRec hyperparameters ($n_{\mathrm{layers}}{\in}[1,3]$,
+$n_{\mathrm{heads}}{\in}\{1,2,4\}$, $\mathrm{hidden\_size}, \mathrm{inner\_size}$,
+dropouts, learning rate), with one extra categorical for IA-SASRec
+selecting $\texttt{intensity\_norm}\in\{\texttt{log1p\_minmax},\texttt{minmax},\texttt{zscore},\texttt{none}\}$.
+The learnable $\lambda$'s are model parameters, not hyperparameters.
+The final fit uses each model's HPO-best configuration, trains for up
+to $50$ epochs with early stopping on validation NDCG@10 (patience $5$),
+and is repeated across five seeds.
+Test metrics come from a single pass using the best-on-validation
+checkpoint; validation data is never folded back into training.
+
+This protocol gives the IA-SASRec variants strictly more
+hyperparameter freedom than SASRec (one extra categorical at no extra
+trial cost), and identical training budget per seed. Under this
+protocol, an under-tuning explanation would require a configuration
+outside the shared search space.
+
+\subsection{Evaluation: dual-criterion significance with a per-seed stability check}
+\label{sec:setup:eval}
+
+We report NDCG@10, Recall@10, and MRR@10 at the standard $k{=}10$
+sequential-recommendation cutoff~\citep{kang2018sasrec,sun2019bert4rec}.
+Under our leave-one-out full-ranking protocol --- exactly one held-out
+positive per user, ranked against the full item catalogue --- Hit@K
+coincides with Recall@K and Precision@K equals Recall@K$/K$, so the
+three metrics we report are the non-redundant trio (set-membership,
+reciprocal rank, log-discounted rank); Hit and Precision are computed
+but omitted as they carry no information beyond Recall.
+
+A standard single-seed table is underpowered for small effect sizes:
+training stochasticity and test-population sampling are both large at
+the scale of these datasets~\citep{ferrari2019,sun2020daisy}. We
+report a metric difference as robust only when two independent
+hypothesis tests, each sensitive to a different source of variance,
+both reject at $\alpha{=}0.05$, and a per-seed stability check
+confirms that the per-user test is not dominated by a single seed:
+
+\begin{enumerate}
+\item[(i)] Seed-level paired $t$-test on the $n{=}5$ per-seed
+test metrics ($\mathrm{df}{=}4$, two-sided $\alpha{=}0.05$). Unit of
+variation: random training seed. Pairing is by seed so the same
+data split sits on both sides of the comparison.
+\item[(ii)] Per-user paired bootstrap~\citep{efron1993bootstrap} ($B{=}2{,}000$ resamples)
+on aligned per-user metric differences pooled across seeds, with
+percentile $95\%$ CI and two-sided $p = 2 \min(\Pr[\bar d{\le}0], \Pr[\bar d{\ge}0])$
+floored at $1/B$. Unit of variation: test user.
+\item[(iii)] Per-seed CI sign-agreement majority: a stability
+check, not an independent hypothesis test. We re-run the bootstrap
+of (ii) independently within each seed and require $\ge 3$ of $5$
+per-seed $95\%$ CIs to sit entirely on the same side of zero. This
+guards against (ii) being driven by a single lucky seed.
+\end{enumerate}
+
+Cells in our main results table are bolded only when (i) and (ii) both
+reject at $\alpha{=}0.05$ and the stability check holds. For
+full-vocabulary scoring rather than sampled top-$k$, see the cautions
+in~\citep{krichene2020sampled}.
+
+\subsection{Implementation and reproducibility}
+\label{sec:setup:repro}
+
+The model is built on top of RecBole~\citep{zhao2021recbole}
+(PyTorch~\citep{paszke2019pytorch} back-end), with an
+additional intensity column threaded through the shared data pipeline
+so that baselines and intensity-aware variants run on identical inputs.
+All artefacts needed to reproduce the analysis (code, checkpoints,
+per-seed evaluation outputs, and per-user metric tables) are released
+alongside the paper.

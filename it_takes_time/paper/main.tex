@@ -1,32 +1,145 @@
 % =====================================================================
-%  IA-SASRec negative-result paper — skeleton
-%  Generic article.cls preamble; swap documentclass per target venue.
+%  IA-SASRec negative-result paper — formatted for the journal
+%  "Artificial Intelligence" (ISSN 1561-5359, Oles Honchar Dnipro NU).
+%  2-column, 12pt Times New Roman, bilingual UA+EN title/abstract.
+%
 %  Build:  make pdf
-%  Word:   make docx     (requires pandoc >= 3.0)
 % =====================================================================
-\documentclass[11pt]{article}
+\documentclass[twocolumn,12pt,a4paper]{article}
 
-\usepackage[margin=1in]{geometry}
-\usepackage{amsmath, amssymb}
+\usepackage[margin=2cm]{geometry}
+\usepackage{iftex}
+\ifPDFTeX
+  % Fallback for pdfLaTeX (Cyrillic via T2A; uses Latin-Modern as Times has no T2A).
+  \usepackage[T2A,T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage[ukrainian,english]{babel}
+\else
+  % Recommended: xelatex / lualatex with native UTF-8 and a Times clone.
+  \usepackage[no-math]{fontspec}
+  % "Times New Roman" is a macOS system font and has full Cyrillic
+  % coverage; TeX Gyre Termes (the open-source Times clone bundled
+  % with TeX Live) does not, so we use the system font on macOS.
+  \setmainfont{Times New Roman}
+  \usepackage[ukrainian,english]{babel}
+\fi
+
+% Forbid algorithmic mid-word hyphenation at line ends. Real hyphens in
+% compound names (IA-SASRec-Add, ML-1M, ...) are NOT affected — those
+% are controlled by \exhyphenpenalty which we leave at its default.
+% Compensate with looser inter-word spacing so paragraphs still fully
+% justify to the column width.
+\hyphenpenalty=10000
+\sloppy
+\tolerance=1500
+\emergencystretch=3em
+\usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{xcolor}
-\usepackage[round]{natbib}
+\usepackage{caption}
+\usepackage[style=apa,citestyle=numeric-comp,sortcites=true,sorting=none,backend=biber,natbib=true]{biblatex}
+\addbibresource{refs.bib}
+\defbibenvironment{bibliography}
+  {\enumerate[label=\arabic*.,leftmargin=*,labelsep=0.5em,itemsep=\bibitemsep,parsep=\bibparsep]}
+  {\endenumerate}
+  {\item}
+\usepackage{microtype}
+\usepackage{enumitem}
 \usepackage{hyperref}
-\hypersetup{colorlinks=true, linkcolor=blue!50!black, citecolor=blue!50!black, urlcolor=blue!50!black}
+\hypersetup{colorlinks=true, linkcolor=blue!50!black,
+            citecolor=blue!50!black, urlcolor=blue!50!black}
 \graphicspath{{figures/}}
 
-% Lifted from docs/protocol_neural_networks.tex — best/second-best result highlighting.
+% Best/second-best result highlighting (used by tables/main_results.tex).
 \newcommand{\best}[1]{\textbf{#1}}
 \newcommand{\second}[1]{\underline{#1}}
 
-\title{Intensity-Aware Self-Attention for Sequential Recommendation:\\
-A Negative Result and a Mechanism Analysis}
+% Caption tuning — body 12pt, captions a notch smaller per sample.
+\captionsetup{font=small,labelfont=bf}
+
+% Journal header (top of first page, per SampleArticleEN.pdf).
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[R]{\footnotesize \thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
 
 \begin{document}
-\maketitle
 
+% --- Single-column title block at the top of a two-column document ---
+\twocolumn[
+\begin{@twocolumnfalse}
+\begin{center}
+{\footnotesize\bfseries UDC 004.85}\hfill\mbox{}\par
+\vspace{0.6em}
+
+% ---- Ukrainian title ----
+{\small\itshape Назва статті українською}\par
+\vspace{0.2em}
+{\bfseries\large ІНТЕНСИВНО-ЗВАЖЕНА САМОУВАГА ДЛЯ ПОСЛІДОВНИХ РЕКОМЕНДАЦІЙ:\par
+НЕГАТИВНИЙ РЕЗУЛЬТАТ І АНАЛІЗ МЕХАНІЗМУ}\par
+\vspace{0.8em}
+
+% ---- English title ----
+{\small\itshape Title of the article in English}\par
+\vspace{0.2em}
+{\bfseries\large INTENSITY-AWARE SELF-ATTENTION FOR SEQUENTIAL RECOMMENDATION:\par
+A NEGATIVE RESULT AND A MECHANISM ANALYSIS}\par
+\vspace{1.0em}
+\end{center}
+
+% ---- Ukrainian annotation (~1800 chars w/ spaces, per journal spec) ----
+% NOTE: native-speaker review recommended before submission. Draft is a
+% literal rendering of the English annotation; terminology (увага,
+% шар, базова модель, довірчий інтервал, бутстрап) should be checked
+% against current Ukrainian recommender-systems literature.
+\begin{otherlanguage}{ukrainian}
+{\small\noindent
+Послідовні рекомендаційні моделі на основі самоуваги відкидають
+важливий контрольований сигнал --- \textit{інтенсивність} кожної
+взаємодії (оцінку $1$--$5$, кількість годин гри, час перегляду, суму
+покупки). Ми перевіряємо гіпотезу, що повернення інтенсивності у
+обчислення уваги має покращити топ-$k$ точність пропорційно до
+інформативності сигналу. Запропоновано три модифікації SASRec ---
+IA-SASRec-Add, IA-SASRec-Mul, IA-SASRec-Val, --- що відповідають
+трьом алгебраїчним позиціям, де інтенсивність можна вбудувати у вираз
+уваги. Кожен варіант додає один навчальний скаляр $\lambda$ на шар
+уваги, так що при $\lambda{=}0$ модель точно збігається з базовою
+SASRec. На сімох наборах даних (MovieLens$\times2$, Amazon$\times2$,
+Steam$\times3$) і п'ятьох початкових станах на конфігурацію, із
+потрійним протоколом значущості (попарний $t$-критерій по
+\emph{seed}-ах, попарний бутстрап по користувачах при $B{=}2{,}000$,
+мажоритарна згода знаків довірчих інтервалів по \emph{seed}-ах),
+жоден варіант не дає робастного покращення. Картина протилежна
+гіпотезі: на Steam, де сигнал інтенсивності найбагатший,
+спостерігаються найбільші статистично значущі погіршення (до
+$-9{,}5\%$ NDCG@10, $p<0{,}05$). Аналіз вивченого $\lambda$ пояснює
+провал: $\lambda$ вільно зменшується там, де інтенсивність
+неінформативна (до $0{,}07$ на ML-1M), але залишається у діапазоні
+$0{,}55$--$0{,}99$ на Steam. Архітектурний ``вихід при $\lambda{=}0$''
+доступний у принципі, але не реалізується на практиці. Робимо
+висновок, що один скаляр на шар --- надто грубий контроль для
+інжекції інтенсивності, та окреслюємо три конкретні архітектурні
+альтернативи.
+
+\noindent\textbf{Ключові слова:} послідовні рекомендації;
+самоувага; SASRec; увага з урахуванням інтенсивності;
+відтворюваність; перевірка значущості; негативний результат;
+довірчий інтервал методом бутстрап; аналіз механізму.}
+\end{otherlanguage}
+
+\bigskip
+
+% ---- English annotation (from sections/00_abstract.tex) ----
 \input{sections/00_abstract}
+
+\vspace{1em}
+\end{@twocolumnfalse}
+]
+
+% --- Body sections (two columns from here) ---
 \input{sections/01_introduction}
 \input{sections/02_related_work}
 \input{sections/03_method}
@@ -36,7 +149,6 @@ A Negative Result and a Mechanism Analysis}
 \input{sections/07_discussion}
 \input{sections/08_conclusion}
 
-\bibliographystyle{plainnat}
-\bibliography{refs}
+\printbibliography
 
 \end{document}

@@ -7,7 +7,7 @@
 .PHONY: pdf docx clean
 
 pdf:
-	latexmk -pdf -interaction=nonstopmode main.tex
+	latexmk -xelatex -bibtex -e '$$bibtex="biber %O %B"' -interaction=nonstopmode main.tex
 
 docx:
 	pandoc main.tex \

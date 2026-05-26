@@ -20,7 +20,7 @@
 %           Observed: a few ML-1M points sit near origin (Val
 %           lambda=0.07).
 %       The plot's punchline: there is no positive correlation
-%       between lambda and Δ. The escape-hatch story FAILS in practice
+%       between lambda and Δ. The fallback story FAILS in practice
 %       — high lambda does not predict gain (and on Steam, predicts
 %       loss).
 %
@@ -44,7 +44,7 @@
 %   6.3 Ablation: lambda = 0 vs. lambda = 1 vs. learned.
 %       TODO (FLAG IN PAPER): this ablation has NOT been run yet. It
 %       is the single most important pre-submission task because it
-%       directly tests the "escape-hatch" claim. Expected outcome on
+%       directly tests the "fallback" claim. Expected outcome on
 %       Steam: lambda=0 matches SASRec; lambda=1 matches IA-SASRec;
 %       learned sits between — confirming that the model could opt
 %       out but doesn't, because there is no usable gradient signal
@@ -60,7 +60,93 @@
 %         its current normalised form, is informative" — confounding
 %         the architectural claim with the preprocessing choice.
 % =====================================================================
-\section{Analysis}
-TODO: 6.1 lambda-vs-Delta figure + reading, 6.2 Steam paradox probes,
-6.3 lambda ablation (mark as REQUIRED before submission), 6.4
-architectural implications.
+\section{Analysis: why does intensity hurt?}
+\label{sec:analysis}
+
+The negative result documented above is sharper than ``the
+hypothesis was wrong.'' The variants are designed to be a strict
+super-set of SASRec: at $\lambda{=}0$ each one collapses, layer-by-layer,
+to the baseline. A fair learner should therefore have driven $\lambda$
+toward zero whenever intensity was a hindrance and recovered SASRec
+exactly. It did not. This section makes the mechanism precise.
+
+\subsection{$\lambda$ calibration}
+\label{sec:analysis:lambda}
+
+\input{tables/lambda_table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/lambda_vs_delta.pdf}
+\caption{$\lambda$-vs-$\Delta$ calibration: each marker is one (dataset, variant) cell. $x$-axis = mean learned $\lambda$ across attention layers and seeds (cf. Table~\ref{tab:lambda}); $y$-axis = mean test-NDCG@10 relative $\Delta$ vs SASRec. Top-right would be the predicted ``model uses intensity and gains''; observed: empty. Bottom-right is ``model uses intensity and loses'', where Steam clusters.}
+\label{fig:lambda_vs_delta}
+\end{figure}
+
+Table~\ref{tab:lambda} reports the per-(dataset, variant) learned
+$\lambda$ averaged across attention layers and 5 seeds, and
+Figure~\ref{fig:lambda_vs_delta} plots it against the relative
+NDCG@10 change. Two facts dominate.
+
+\paragraph{$\lambda$ does adapt away from its initialisation.}
+The learned values span $0.07$ to $0.99$, two orders of magnitude
+of variation around the $1.0$ initialisation. On ML-1M, Val drops to
+$\lambda \approx 0.07$ and Mul to $\lambda \approx 0.15$, and on
+ML-100K Mul reaches $\lambda \approx 0.21$. Wherever the optimiser
+``wants'' to shrink the intensity channel, it can: the gradient path
+is open.
+
+\paragraph{$\lambda$ stays high precisely where the variant hurts.}
+On Steam-3k all three variants converge to $\lambda \in [0.98, 0.99]$
+(effectively at the $\lambda{=}1$ initialisation), and on Steam-8k
+and Steam-15k they sit at $0.56$--$0.75$. These are exactly the cells
+with robust negative deltas in Table~\ref{tab:main_results}. The
+``fallback'' that the design promised is not realised in practice:
+the optimiser does not steer $\lambda$ toward $0$ when intensity is
+harmful. There is no positive correlation between $\lambda$ and $\Delta$
+in Figure~\ref{fig:lambda_vs_delta}; if anything, the slope is
+negative.
+
+The two observations together rule out the simple counter-narrative
+``the optimiser is stuck at $\lambda{=}1$''. It is not stuck; it
+moves freely on ML-1M and ML-100K. On Steam it makes an active choice
+to keep $\lambda$ large, presumably because per-step cross-entropy
+loss locally rewards the intensity-injected attention pattern even
+though the resulting model generalises worse on the held-out test
+ranking. We did not run a controlled $\lambda{\equiv}0$ ablation
+(the training-budget discipline did not allow an extra pinned-$\lambda$ run); the
+falsification here therefore rests on the observed dynamics rather
+than a paired counterfactual. We return to this caveat in the
+Discussion.
+
+\subsection{The Steam paradox}
+\label{sec:analysis:steam}
+
+Steam has the strongest, most continuous intensity signal of the
+seven datasets, yet hosts the worst outcomes. Two non-exclusive
+explanations are consistent with the data. Distribution shape:
+Steam playtime is heavy-tailed (a $1000$-hour outlier coexisting with
+many $\sim\!1$-hour interactions). Under the default log-min-max normalisation the
+mass collapses into a narrow upper band, so the intensity channel
+carries less information than its raw range suggests while still
+adding optimisation variance. Popularity confound: high-playtime
+titles are also popular ones, and item-embedding learning already
+captures popularity; the intensity channel then adds redundancy
+rather than information. A definitive diagnosis between the two would
+require a per-dataset Spearman correlation between intensity rank and
+popularity rank and a histogram of post-normalisation intensities;
+we flag this as future analytical work, not a fix.
+
+\subsection{Implications for IA-SASRec design}
+\label{sec:analysis:design}
+
+A single learnable scalar $\lambda$ per layer is too limited a control
+to be a useful fallback. Three structural shortcomings emerge from
+the analysis: (i) $\lambda$ cannot down-weight a specific tail of the
+intensity distribution (e.g.\ mute the $100$-hour outliers but keep
+the moderate range); (ii) $\lambda$ is shared across attention heads
+in our implementation, so it cannot let some heads use intensity while
+others ignore it; (iii) the choice of normalisation is entangled with the architectural claim:
+a null result could mean intensity carries no information, or that the
+normalisation we picked flattened the information that was there. Future
+intensity-injection designs should target these three axes directly;
+the Conclusion outlines three concrete alternatives.
