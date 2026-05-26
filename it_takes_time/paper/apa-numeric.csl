@@ -2242,7 +2242,7 @@
       <key variable="citation-number"/>
     </sort>
     <layout>
-      <text variable="citation-number" prefix="[" suffix="]"/>
+      <text variable="citation-number" suffix="."/>
       <choose>
         <if match="any" variable="archive archive-place container-title DOI number publisher references URL">
           <text macro="bibliography"/>
