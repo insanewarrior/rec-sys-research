@@ -77,7 +77,7 @@ mix. Equivalently, since the factor depends only on $k$, this is
 algebraically identical to pre-scaling each value vector $V_k$ by its
 intensity: $\big(A \odot (1{+}\lambda(M_W{-}1))\big)\,V = A\,(D_\lambda V)$,
 where $D_\lambda = \mathrm{diag}(1{+}\lambda(w{-}1))$. Hence the name
-\emph{Val}: the operation acts at the value-mixing stage of attention.
+Val: the operation acts at the value-mixing stage of attention.
 \begin{equation}
 \begin{aligned}
 \mathrm{Att}_{\mathrm{Val}} = \bigl[\,
@@ -92,8 +92,8 @@ probabilities that mix the values. We deliberately do not renormalise
 the reweighted distribution: any magnitude inflation introduced by
 $1{+}\lambda(w_k{-}1) > 1$ is absorbed by the post-attention layer
 normalisation~\citep{ba2016layernorm} in the residual block, while the
-intensity-driven \emph{direction} change in the output vector --- the
-part that actually re-ranks candidates --- passes through unaffected.
+intensity-driven direction change in the output vector, the
+part that actually re-ranks candidates, passes through unaffected.
 
 Equation~\eqref{eq:val} is a breaking change from a previous formulation
 of Val, which multiplied the post-attention context by
