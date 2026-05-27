@@ -148,9 +148,9 @@ the three formulations.
 \toprule
 Variant & Mechanism \\
 \midrule
-Add & $\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} + \lambda\, M_W + M\right)\! V$ \\[1.2em]
-Mul & $\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} \odot \bigl(1 + \lambda(M_W - 1)\bigr) + M\right)\! V$ \\[1.2em]
-Val & $\left[\,\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} + M\right) \odot \bigl(1 + \lambda(M_W - 1)\bigr)\right] V$ \\[0.6em]
+IA-SASRec-Add & $\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} + \lambda\, M_W + M\right)\! V$ \\[1.2em]
+IA-SASRec-Mul & $\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} \odot \bigl(1 + \lambda(M_W - 1)\bigr) + M\right)\! V$ \\[1.2em]
+IA-SASRec-Val & $\left[\,\mathrm{softmax}\!\left(\dfrac{QK^{\top}}{\sqrt{d}} + M\right) \odot \bigl(1 + \lambda(M_W - 1)\bigr)\right] V$ \\[0.6em]
 \bottomrule
 \end{tabular}
 \end{table*}
