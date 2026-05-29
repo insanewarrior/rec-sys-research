@@ -10,7 +10,7 @@ pdf:
 	latexmk -xelatex -bibtex -e '$$bibtex="biber %O %B"' -interaction=nonstopmode main.tex
 
 docx:
-	pandoc main.tex \
+	pandoc docx_preamble.tex main.tex \
 	    --from=latex \
 	    --to=docx \
 	    --citeproc \

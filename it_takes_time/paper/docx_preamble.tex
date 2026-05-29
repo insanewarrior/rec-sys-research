@@ -1,0 +1,80 @@
+% Pandoc-only preamble: abstracts injected before the main body.
+% This file is NOT included in the PDF build (see Makefile).
+% Pandoc skips \twocolumn[...] so the abstracts in main.tex are invisible
+% to DOCX; this file surfaces them at the top of the document.
+
+\noindent\textbf{АНОТАЦІЯ}
+
+\noindent Послідовні рекомендаційні системи на основі самоуваги ігнорують
+насичений контрольований сигнал: інтенсивність кожної взаємодії
+(5-зірковий рейтинг, кількість годин гри, час перебування на
+сторінці, вартість покупки). Ми висунули гіпотезу, що введення
+інтенсивності в обчислення уваги повинно покращити точність top-$k$
+пропорційно до того, наскільки інформативним є базовий сигнал. Ми
+перевіряємо гіпотезу за допомогою трьох модифікацій SASRec
+(IA-SASRec-Add, IA-SASRec-Mul, IA-SASRec-Val), що відповідають
+трьом алгебраїчним позиціям, де інтенсивність може бути введена у
+вираз уваги. Кожен варіант додає один скаляр $\lambda$, який
+оптимізується під час навчання, на кожен шар уваги, спроектований
+так, щоб при $\lambda{=}0$ точно відтворювався базовий SASRec:
+модель є строгою надмножиною базової моделі. Ми проводимо оцінку на
+семи наборах даних (MovieLens$\times$2, Amazon$\times$2,
+Steam$\times$3) з п'ятьма ініціалізаціями на конфігурацію, за
+протоколом значущості з двома критеріями та перевіркою стабільності
+(попарний $t$-критерій на рівні ініціалізації та попарний бутстрап
+на рівні користувача з $B{=}2{,}000$). Згідно з цим протоколом
+жоден варіант не досягає стійкого покращення за метриками NDCG@10,
+Recall@10 або MRR@10 на жодному з наборів. Отримана картина
+перевертає гіпотезу: саме на наборі даних Steam (з найбільш
+насиченим сигналом інтенсивності) спостерігаються найбільші
+статистично значущі погіршення результатів (до $-9{,}5\%$ за
+показником NDCG@10, $p<0{,}05$). Аналіз механізму на основі
+навченого параметра $\lambda$ пояснює причину невдачі: $\lambda$
+вільно адаптується на наборах даних, де інтенсивність не є
+інформативною (до $0{,}07$ на ML-1M), але залишається на рівні
+$0{,}55$--$0{,}99$ на Steam. Ми стверджуємо, що один скалярний
+вентиль на кожен шар є занадто обмеженим засобом контролю для
+інжекції інтенсивності, і пропонуємо три конкретні архітектурні
+рішення, спрямовані на подолання цього обмеження.
+
+\noindent\textbf{Ключові слова:} послідовні рекомендації;
+самоувага; SASRec; інтеграція додаткової інформації; увага з
+урахуванням інтенсивності; відтворюваність; негативний результат;
+аналіз механізму.
+
+\bigskip
+
+\noindent\textbf{Abstract}
+
+\noindent Sequential recommenders based on self-attention discard a
+rich supervised signal: per-interaction intensity (a $5$-star
+rating, hours played, dwell time, purchase value). We hypothesised
+that re-introducing intensity into the attention computation should
+improve top-$k$ accuracy in proportion to how informative the
+underlying signal is. We test the hypothesis with three drop-in
+modifications of SASRec (IA-SASRec-Add, IA-SASRec-Mul, IA-SASRec-Val),
+corresponding to the three algebraic positions where intensity
+can be threaded into the attention expression. Each variant adds a
+single learnable scalar $\lambda$ per attention layer, designed so
+that $\lambda{=}0$ recovers vanilla SASRec exactly: the model is a
+strict super-set of the baseline. We evaluate across seven datasets
+(MovieLens$\times$2, Amazon$\times$2, Steam$\times$3) with five seeds
+per configuration, under a dual-criterion significance protocol with a
+per-seed stability check (seed-level paired $t$ and per-user paired
+bootstrap with $B{=}2{,}000$). Under this protocol, no variant achieves
+a robust improvement on NDCG@10, Recall@10, or MRR@10 anywhere. The
+pattern inverts the hypothesis: Steam (the dataset with the richest
+intensity signal) hosts the largest significant degradations (up to
+$-9.5\%$ NDCG@10, $p<0.05$). Mechanism analysis through the learned
+$\lambda$ explains the failure: $\lambda$ adapts freely on datasets
+where intensity is not informative (down to $0.07$ on ML-1M) but stays
+at $0.55$--$0.99$ on Steam, where the variants are at their worst.
+We argue that a single per-layer scalar gate is too limited a control
+for intensity injection, and outline three concrete designs that target
+this limitation.
+
+\noindent\textbf{Keywords:} sequential recommendation; self-attention;
+SASRec; side information fusion; intensity-aware attention;
+reproducibility; negative result; mechanism analysis.
+
+\bigskip\hrule\bigskip

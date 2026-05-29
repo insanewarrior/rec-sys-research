@@ -232,6 +232,11 @@ INPUT main.out
 INPUT ./main.out
 INPUT ./main.out
 OUTPUT main.out
+INPUT ./sections/00_abstract_ua.tex
+INPUT ./sections/00_abstract_ua.tex
+INPUT ./sections/00_abstract_ua.tex
+INPUT ./sections/00_abstract_ua.tex
+INPUT sections/00_abstract_ua.tex
 INPUT /Users/anshy/Library/TinyTeX/texmf-dist/fonts/tfm/public/cm/cmr10.tfm
 INPUT /Users/anshy/Library/TinyTeX/texmf-dist/tex/latex/microtype/mt-cmr.cfg
 INPUT /Users/anshy/Library/TinyTeX/texmf-dist/tex/latex/microtype/mt-cmr.cfg
