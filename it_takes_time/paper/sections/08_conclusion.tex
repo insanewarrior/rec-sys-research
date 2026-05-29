@@ -34,7 +34,7 @@ stability check, none of the variants
 delivers a robust improvement, and the failure is largest on Steam,
 the dataset with the strongest, most continuous intensity signal.
 
-The mechanism is sharper than ``the hypothesis is wrong.'' The
+The mechanism admits a more precise characterisation than a simple hypothesis failure. The
 learned $\lambda$ adapts freely on the datasets where intensity is
 not informative (down to $0.07$ on ML-1M Val) yet stays at $0.55$--$0.99$
 on Steam, where the variants are at their worst. The architectural
@@ -43,7 +43,7 @@ but not realised in practice: cross-entropy gradients do not steer
 $\lambda$ back to zero even when generalisation degrades. A single
 per-layer scalar is too limited a control for intensity injection.
 
-Three concrete directions worth trying instead of scaling $\lambda$.
+Three concrete directions merit investigation as alternatives to scalar $\lambda$ gating.
 First, token-level intensity gating: replace the scalar
 $\lambda$ with a per-position learned gate $\lambda(w_k)$, so the
 model can mute specific intensity values (e.g.\ the $100$-hour Steam

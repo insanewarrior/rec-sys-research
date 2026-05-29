@@ -56,7 +56,7 @@ and that is the totality of the signal that reaches the attention
 layer. The underlying intensity of each interaction (a
 $5$-star rating on MovieLens, hours played on Steam, dwell time or
 purchase value in industrial logs) is discarded. From a Shannon
-standpoint that is a lot of supervised information thrown away, and
+standpoint this amounts to discarding substantial supervised information, and
 the discard is more notable the richer the intensity signal is:
 a binary signal carries one bit; a continuous heavy-tailed playtime
 distribution can carry several.
@@ -104,13 +104,13 @@ the learned per-layer $\lambda$. The learned $\lambda$ does adapt: it
 drops to $0.07$ on ML-1M Val (and the model recovers SASRec), so the
 optimisation path is open. But on Steam it stays at $0.55$--$0.99$
 across all three variants and all three subset sizes, even as test
-metrics degrade. The optimiser can disable intensity and chooses not to. A
+metrics degrade. The architecture provides a path to disable intensity, yet the optimiser does not take it. A
 single per-layer scalar is not a sufficient fallback for
 intensity injection: it cannot down-weight specific intensity values,
 and it cannot let some attention heads use intensity while others
 ignore it. It also confounds the signal itself with the way we encoded
 it: a flat $\lambda$ could mean intensity carries no information, or
-that our normalisation choice flattened the information that was there.
+that the chosen normalisation suppressed the information it contained.
 
 \paragraph{Contributions.}
 \begin{itemize}

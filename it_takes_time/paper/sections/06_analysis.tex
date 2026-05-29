@@ -60,11 +60,11 @@
 %         its current normalised form, is informative" — confounding
 %         the architectural claim with the preprocessing choice.
 % =====================================================================
-\section{Analysis: why does intensity hurt?}
+\section{Analysis of the degradation mechanism}
 \label{sec:analysis}
 
-The negative result documented above is sharper than ``the
-hypothesis was wrong.'' The variants are designed to be a strict
+The negative result documented above admits a more precise characterisation
+than a simple hypothesis failure. The variants are designed to be a strict
 super-set of SASRec: at $\lambda{=}0$ each one collapses, layer-by-layer,
 to the baseline. A fair learner should therefore have driven $\lambda$
 toward zero whenever intensity was a hindrance and recovered SASRec
@@ -91,9 +91,8 @@ NDCG@10 change. Two facts dominate.
 The learned values span $0.07$ to $0.99$, two orders of magnitude
 of variation around the $1.0$ initialisation. On ML-1M, Val drops to
 $\lambda \approx 0.07$ and Mul to $\lambda \approx 0.15$, and on
-ML-100K Mul reaches $\lambda \approx 0.21$. Wherever the optimiser
-``wants'' to shrink the intensity channel, it can: the gradient path
-is open.
+ML-100K Mul reaches $\lambda \approx 0.21$. Wherever the gradient signal favours shrinking the intensity channel,
+the optimiser can do so: the gradient path is open.
 
 \paragraph{$\lambda$ stays high precisely where the variant hurts.}
 On Steam-3k all three variants converge to $\lambda \in [0.98, 0.99]$
