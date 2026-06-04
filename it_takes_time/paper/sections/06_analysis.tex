@@ -75,12 +75,12 @@ exactly. It did not. This section makes the mechanism precise.
 
 \input{tables/lambda_table}
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/lambda_vs_delta.pdf}
+\includegraphics[width=\textwidth]{figures/lambda_vs_delta.pdf}
 \caption{$\lambda$-vs-$\Delta$ calibration: each marker is one (dataset, variant) cell. $x$-axis = mean learned $\lambda$ across attention layers and seeds (Table~\ref{tab:lambda}); $y$-axis = mean test-NDCG@10 relative $\Delta$ vs SASRec. Top-right would be the predicted ``model uses intensity and gains''; observed: empty. Bottom-right is ``model uses intensity and loses'', where Steam clusters.}
 \label{fig:lambda_vs_delta}
-\end{figure}
+\end{figure*}
 
 Table~\ref{tab:lambda} reports the per-(dataset, variant) learned
 $\lambda$ averaged across attention layers and 5 seeds, and

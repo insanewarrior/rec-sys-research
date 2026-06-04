@@ -68,12 +68,12 @@ Figure~\ref{fig:forest} shows the per-user paired bootstrap CIs for
 NDCG@10 across every (dataset, variant) pair: nearly every
 confidence interval either crosses zero or sits to its left.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/forest_ndcg10.pdf}
-\caption{Per-user paired bootstrap ($B{=}2000$) on aligned NDCG@10 differences vs SASRec, pooled across five seeds. Each row is one (dataset, variant) cell; centre = mean per-user $\Delta$, whiskers = 95\% percentile CI. Red rows have CI entirely below zero; green rows entirely above; grey rows cross zero. No robust positive cell exists for NDCG@10.}
+\includegraphics[width=\textwidth]{figures/forest_ndcg10.pdf}
+\caption{Per-user paired bootstrap ($B{=}2000$) on aligned NDCG@10 differences vs SASRec, pooled across five seeds. Three panels, one per variant; within each panel every row is one dataset and rows share the common $\Delta$ x-axis. Centre = mean per-user $\Delta$, whiskers = 95\% percentile CI. Red markers have CI entirely below zero; green entirely above; grey cross zero. No robust positive cell exists for NDCG@10.}
 \label{fig:forest}
-\end{figure}
+\end{figure*}
 
 The headline is that across $63$ tested cells ($7$ datasets $\times$
 $3$ variants $\times$ $3$ metrics at $k{=}10$), no positive cell

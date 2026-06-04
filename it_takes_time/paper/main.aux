@@ -275,12 +275,12 @@
 \abx@aux@page{57}{7}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Results}{7}{section.5}\protected@file@percent }
 \newlabel{sec:results}{{5}{7}{Results}{section.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Per-user paired bootstrap ($B{=}2000$) on aligned NDCG@10 differences vs SASRec, pooled across five seeds. Each row is one (dataset, variant) cell; centre = mean per-user $\Delta $, whiskers = 95\% percentile CI. Red rows have CI entirely below zero; green rows entirely above; grey rows cross zero. No robust positive cell exists for NDCG@10.}}{7}{figure.caption.13}\protected@file@percent }
-\newlabel{fig:forest}{{1}{7}{Per-user paired bootstrap ($B{=}2000$) on aligned NDCG@10 differences vs SASRec, pooled across five seeds. Each row is one (dataset, variant) cell; centre = mean per-user $\Delta $, whiskers = 95\% percentile CI. Red rows have CI entirely below zero; green rows entirely above; grey rows cross zero. No robust positive cell exists for NDCG@10}{figure.caption.13}{}}
+\@writefile{toc}{\contentsline {paragraph}{MovieLens (ML-100K, ML-1M).}{7}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Amazon (Digital Music, Office Products).}{7}{section*.15}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Relative change (\%) of IA-SASRec variants vs SASRec across 7 datasets and 5 seeds. Stars: paired $t$-test, $^{*}p<0.05$, $^{**}p<0.01$. Bold cells are robust: both the paired-$t$ at the seed level and the per-user paired bootstrap (B=2000) reject at $\alpha =0.05$, and the per-seed CI sign-majority stability check holds.}}{8}{table.caption.12}\protected@file@percent }
 \newlabel{tab:main_results}{{3}{8}{Relative change (\%) of IA-SASRec variants vs SASRec across 7 datasets and 5 seeds. Stars: paired $t$-test, $^{*}p<0.05$, $^{**}p<0.01$. Bold cells are robust: both the paired-$t$ at the seed level and the per-user paired bootstrap (B=2000) reject at $\alpha =0.05$, and the per-seed CI sign-majority stability check holds}{table.caption.12}{}}
-\@writefile{toc}{\contentsline {paragraph}{MovieLens (ML-100K, ML-1M).}{8}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Amazon (Digital Music, Office Products).}{8}{section*.15}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Per-user paired bootstrap ($B{=}2000$) on aligned NDCG@10 differences vs SASRec, pooled across five seeds. Three panels, one per variant; within each panel every row is one dataset and rows share the common $\Delta $ x-axis. Centre = mean per-user $\Delta $, whiskers = 95\% percentile CI. Red markers have CI entirely below zero; green entirely above; grey cross zero. No robust positive cell exists for NDCG@10.}}{8}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:forest}{{1}{8}{Per-user paired bootstrap ($B{=}2000$) on aligned NDCG@10 differences vs SASRec, pooled across five seeds. Three panels, one per variant; within each panel every row is one dataset and rows share the common $\Delta $ x-axis. Centre = mean per-user $\Delta $, whiskers = 95\% percentile CI. Red markers have CI entirely below zero; green entirely above; grey cross zero. No robust positive cell exists for NDCG@10}{figure.caption.13}{}}
 \@writefile{toc}{\contentsline {paragraph}{Steam (3k / 8k / 15k).}{8}{section*.16}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {6}Analysis of the degradation mechanism}{8}{section.6}\protected@file@percent }
 \newlabel{sec:analysis}{{6}{8}{Analysis of the degradation mechanism}{section.6}{}}
@@ -292,8 +292,6 @@
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces $\lambda $-vs-$\Delta $ calibration: each marker is one (dataset, variant) cell. $x$-axis = mean learned $\lambda $ across attention layers and seeds (Table~\ref {tab:lambda}); $y$-axis = mean test-NDCG@10 relative $\Delta $ vs SASRec. Top-right would be the predicted ``model uses intensity and gains''; observed: empty. Bottom-right is ``model uses intensity and loses'', where Steam clusters.}}{9}{figure.caption.18}\protected@file@percent }
 \newlabel{fig:lambda_vs_delta}{{2}{9}{$\lambda $-vs-$\Delta $ calibration: each marker is one (dataset, variant) cell. $x$-axis = mean learned $\lambda $ across attention layers and seeds (Table~\ref {tab:lambda}); $y$-axis = mean test-NDCG@10 relative $\Delta $ vs SASRec. Top-right would be the predicted ``model uses intensity and gains''; observed: empty. Bottom-right is ``model uses intensity and loses'', where Steam clusters}{figure.caption.18}{}}
 \@writefile{toc}{\contentsline {paragraph}{$\lambda $ stays high precisely where the variant hurts.}{9}{section*.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}The Steam paradox}{9}{subsection.6.2}\protected@file@percent }
-\newlabel{sec:analysis:steam}{{6.2}{9}{The Steam paradox}{subsection.6.2}{}}
 \abx@aux@refcontext{none/apasortcite//global/global/global}
 \abx@aux@cite{0}{liu2021novabert}
 \abx@aux@segm{0}{0}{liu2021novabert}
@@ -310,6 +308,8 @@
 \abx@aux@segm{0}{0}{ferrari2019}
 \abx@aux@cite{0}{sun2020daisy}
 \abx@aux@segm{0}{0}{sun2020daisy}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}The Steam paradox}{10}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:analysis:steam}{{6.2}{10}{The Steam paradox}{subsection.6.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Implications for IA-SASRec design}{10}{subsection.6.3}\protected@file@percent }
 \newlabel{sec:analysis:design}{{6.3}{10}{Implications for IA-SASRec design}{subsection.6.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {7}Discussion}{10}{section.7}\protected@file@percent }
@@ -323,18 +323,18 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Lesson for benchmarking practice}{10}{subsection.7.3}\protected@file@percent }
 \abx@aux@page{62}{10}
 \abx@aux@page{63}{10}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Threats to validity}{10}{subsection.7.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{HPO budget.}{10}{section*.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Normalisation family.}{10}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Threats to validity}{11}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{HPO budget.}{11}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Normalisation family.}{11}{section*.22}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{No controlled $\lambda {=}0$ run.}{11}{section*.23}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Conservatism of paired-$t$ at $n{=}5$.}{11}{section*.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {8}Conclusion}{11}{section.8}\protected@file@percent }
 \newlabel{sec:conclusion}{{8}{11}{Conclusion}{section.8}{}}
 \abx@aux@page{64}{11}
 \abx@aux@page{65}{11}
-\abx@aux@page{66}{11}
-\abx@aux@page{67}{11}
-\abx@aux@page{68}{11}
+\abx@aux@page{66}{12}
+\abx@aux@page{67}{12}
+\abx@aux@page{68}{12}
 \abx@aux@page{69}{12}
 \abx@aux@page{70}{12}
 \abx@aux@page{71}{12}
@@ -346,10 +346,10 @@
 \abx@aux@page{77}{12}
 \abx@aux@page{78}{12}
 \abx@aux@page{79}{12}
-\abx@aux@page{80}{12}
-\abx@aux@page{81}{12}
-\abx@aux@page{82}{12}
-\abx@aux@page{83}{12}
+\abx@aux@page{80}{13}
+\abx@aux@page{81}{13}
+\abx@aux@page{82}{13}
+\abx@aux@page{83}{13}
 \abx@aux@page{84}{13}
 \abx@aux@page{85}{13}
 \abx@aux@page{86}{13}
@@ -361,10 +361,10 @@
 \abx@aux@page{92}{13}
 \abx@aux@page{93}{13}
 \abx@aux@page{94}{13}
-\abx@aux@page{95}{13}
-\abx@aux@page{96}{13}
-\abx@aux@page{97}{13}
-\abx@aux@page{98}{13}
+\abx@aux@page{95}{14}
+\abx@aux@page{96}{14}
+\abx@aux@page{97}{14}
+\abx@aux@page{98}{14}
 \abx@aux@page{99}{14}
 \abx@aux@page{100}{14}
 \abx@aux@page{101}{14}

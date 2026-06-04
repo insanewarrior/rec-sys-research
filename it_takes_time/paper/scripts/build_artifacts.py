@@ -366,7 +366,7 @@ def write_lambda_vs_delta() -> None:
     palette = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:cyan"]
     colors = {ds: c for ds, c in zip(DATASETS, palette)}
 
-    fig, ax = plt.subplots(figsize=(7.2, 4.8))
+    fig, ax = plt.subplots(figsize=(11, 4.5))
     for _, r in lam_df.iterrows():
         ax.scatter(r["lambda_mean"], r["rel_delta"],
                    marker=markers[r["variant"]], color=colors[r["dataset"]],
@@ -374,7 +374,7 @@ def write_lambda_vs_delta() -> None:
     ax.axhline(0, color="grey", lw=0.7, ls="--")
     ax.axvline(0, color="grey", lw=0.7, ls="--")
     ax.set_xlabel(r"mean learned $\lambda$ (across layers, seeds)")
-    ax.set_ylabel(r"NDCG@10 $\Delta$ vs SASRec (\%)")
+    ax.set_ylabel(r"NDCG@10 $\Delta$ vs SASRec (%)")
     ax.set_title(r"$\lambda$-vs-$\Delta$ calibration")
 
     ds_handles = [Line2D([0], [0], marker="o", color="w", markerfacecolor=colors[d], markeredgecolor="black", label=DS_PRETTY[d], markersize=8) for d in DATASETS]
@@ -429,23 +429,29 @@ def write_forest_plot() -> None:
                 "hi_pct": hi / base_mean * 100.0,
             })
     fdf = pd.DataFrame(rows)
-    # Layout: y-axis = (dataset, variant) tuples in reading order.
-    fdf["label"] = fdf["dataset"] + " · " + fdf["variant"]
-    fdf = fdf.reset_index(drop=True)
-    n = len(fdf)
+    # Page-wide layout: one panel per variant, datasets as rows sharing the x-axis.
+    var_order = [VAR_SHORT[v] for v in VARIANTS]
+    ds_order = [DS_PRETTY[ds] for ds in DATASETS]  # reading order, top-to-bottom
+    y = np.arange(len(ds_order))[::-1]
 
-    fig, ax = plt.subplots(figsize=(7, 0.30 * n + 1.5))
-    y = np.arange(n)[::-1]
-    for i, r in fdf.iterrows():
-        color = "tab:red" if r["hi_pct"] < 0 else ("tab:green" if r["lo_pct"] > 0 else "grey")
-        ax.errorbar(r["mean_pct"], y[i],
-                    xerr=[[r["mean_pct"] - r["lo_pct"]], [r["hi_pct"] - r["mean_pct"]]],
-                    fmt="o", color=color, ecolor=color, capsize=3, markersize=5)
-    ax.axvline(0, color="black", lw=0.8, ls="--")
-    ax.set_yticks(y)
-    ax.set_yticklabels(fdf["label"].tolist())
-    ax.set_xlabel(r"NDCG@10 $\Delta$ vs SASRec (\%) — per-user mean (95\% bootstrap CI)")
-    ax.tick_params(axis="y", labelsize=8)
+    fig, axes = plt.subplots(1, len(var_order), sharex=True, sharey=True,
+                             figsize=(13, 4))
+    for ax, vshort in zip(np.atleast_1d(axes), var_order):
+        sub = fdf[fdf["variant"] == vshort].set_index("dataset")
+        for ds_pretty, yi in zip(ds_order, y):
+            if ds_pretty not in sub.index:
+                continue
+            r = sub.loc[ds_pretty]
+            color = "tab:red" if r["hi_pct"] < 0 else ("tab:green" if r["lo_pct"] > 0 else "grey")
+            ax.errorbar(r["mean_pct"], yi,
+                        xerr=[[r["mean_pct"] - r["lo_pct"]], [r["hi_pct"] - r["mean_pct"]]],
+                        fmt="o", color=color, ecolor=color, capsize=3, markersize=5)
+        ax.axvline(0, color="black", lw=0.8, ls="--")
+        ax.set_title(vshort)
+        ax.set_yticks(y)
+        ax.set_yticklabels(ds_order)
+        ax.tick_params(axis="y", labelsize=8)
+    fig.supxlabel(r"NDCG@10 $\Delta$ vs SASRec (%) — per-user mean (95% bootstrap CI)")
     plt.tight_layout()
     out = FIGURES / "forest_ndcg10.pdf"
     plt.savefig(out, dpi=200)
